@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { generateProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
 import { NOTES } from '../lib/core';
+import PlayButton from './PlayButton';
 import './ChordGenerator.css';
 
 const ChordGenerator = () => {
@@ -39,9 +40,10 @@ const ChordGenerator = () => {
           {progression.length > 0 ? (
             <div className="progression">
               {progression.map((chord, index) => (
-                <span key={index} className="chord">
-                  {chord}
-                </span>
+                <div key={index} className="chord-container">
+                  <span className="chord">{chord}</span>
+                  <PlayButton chord={chord} />
+                </div>
               ))}
             </div>
           ) : (
