@@ -6,7 +6,8 @@
 │   │   └── react.svg
 │   ├── components
 │   │   ├── ChordGenerator.css
-│   │   └── ChordGenerator.jsx
+│   │   ├── ChordGenerator.jsx
+│   │   └── ProgressionPlayer.jsx
 │   ├── docs
 │   │   └── project-directory-tree.md
 │   ├── lib
@@ -19,6 +20,7 @@
 │   │   │   ├── mode-lydian.js
 │   │   │   ├── mode-mixolydian.js
 │   │   │   └── mode-phrygian.js
+│   │   ├── audio.js
 │   │   ├── core.js
 │   │   └── logic.js
 │   ├── App.css

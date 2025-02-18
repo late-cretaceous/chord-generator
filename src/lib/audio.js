@@ -1,20 +1,22 @@
 // src/lib/audio.js
 
-/** 
- * Audio Engine for synthesizing and playing musical notes and chords
- */
 class AudioEngine {
     constructor() {
         this.audioContext = null;
         this.masterGain = null;
         this.oscillators = new Map();
+        this.isPlaying = false;
+        this.currentChordIndex = 0;
+        this.playbackInterval = null;
     }
 
     init() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.masterGain = this.audioContext.createGain();
-        this.masterGain.connect(this.audioContext.destination);
-        this.masterGain.gain.value = 0.5;
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.masterGain = this.audioContext.createGain();
+            this.masterGain.connect(this.audioContext.destination);
+            this.masterGain.gain.value = 0.5;
+        }
     }
 
     noteToFrequency(note, octave) {
@@ -58,13 +60,40 @@ class AudioEngine {
         }, duration * 1000);
     }
 
-    setVolume(value) {
-        if (this.masterGain) {
-            this.masterGain.gain.value = Math.max(0, Math.min(1, value));
+    playChord(chord) {
+        // For now, just play the root note
+        const note = chord.replace(/m|dim|aug|maj7|7/g, '');
+        this.playNote(note, 4, 0.8); // Slightly shorter duration for rhythm
+    }
+
+    startProgressionPlayback(chords, tempo = 120) {
+        if (!this.audioContext) this.init();
+        
+        this.isPlaying = true;
+        this.currentChordIndex = 0;
+        const intervalTime = (60 / tempo) * 1000; // Convert tempo to milliseconds
+
+        // Play the first chord immediately
+        this.playChord(chords[this.currentChordIndex]);
+
+        // Set up interval for remaining chords
+        this.playbackInterval = setInterval(() => {
+            this.currentChordIndex = (this.currentChordIndex + 1) % chords.length;
+            this.playChord(chords[this.currentChordIndex]);
+        }, intervalTime);
+    }
+
+    stopProgressionPlayback() {
+        this.isPlaying = false;
+        if (this.playbackInterval) {
+            clearInterval(this.playbackInterval);
+            this.playbackInterval = null;
         }
+        this.currentChordIndex = 0;
     }
 
     dispose() {
+        this.stopProgressionPlayback();
         if (this.audioContext) {
             this.audioContext.close();
             this.audioContext = null;
@@ -73,26 +102,4 @@ class AudioEngine {
     }
 }
 
-// Export a singleton instance
 export const audioEngine = new AudioEngine();
-
-// We can add more audio-related functions here as we develop them
-// For example:
-
-/**
- * Get frequencies for a full chord
- * @param {string} chord - Chord symbol (e.g., 'Cm', 'F', 'G7')
- * @returns {Array} Array of frequencies for each note in the chord
- */
-export function getChordFrequencies(chord) {
-    // To be implemented
-}
-
-/**
- * Handle timing for sequential chord playback
- * @param {Array} chords - Array of chord symbols
- * @param {number} tempo - Tempo in BPM
- */
-export function playChordSequence(chords, tempo) {
-    // To be implemented
-}

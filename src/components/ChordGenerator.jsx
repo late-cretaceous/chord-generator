@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { generateProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
 import { NOTES } from '../lib/core';
-import PlayButton from './PlayButton';
+import ProgressionPlayer from './ProgressionPlayer';
 import './ChordGenerator.css';
 
 const ChordGenerator = () => {
@@ -38,14 +38,18 @@ const ChordGenerator = () => {
         
         <div className="display">
           {progression.length > 0 ? (
-            <div className="progression">
-              {progression.map((chord, index) => (
-                <div key={index} className="chord-container">
-                  <span className="chord">{chord}</span>
-                  <PlayButton chord={chord} />
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="progression">
+                {progression.map((chord, index) => (
+                  <div key={index} className="chord">
+                    {chord}
+                  </div>
+                ))}
+              </div>
+              <div className="player-controls">
+                <ProgressionPlayer progression={progression} />
+              </div>
+            </>
           ) : (
             <p className="placeholder">
               Click generate to create a progression

@@ -44,6 +44,7 @@ h2 {
     border-radius: 4px;
     min-height: 100px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     margin-bottom: 20px;
@@ -55,8 +56,12 @@ h2 {
     flex-wrap: wrap;
     gap: 20px;
     justify-content: center;
+}
+
+.chord {
     font-family: monospace;
     font-size: 20px;
+    color: #333;
 }
   
 .placeholder {
@@ -197,25 +202,18 @@ button:hover {
     background-color: #357abd;
 }
 
-/* Make play button circular and smaller while inheriting other button styles */
-.play-button {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border-radius: 50%;
-    font-size: 14px;
-    line-height: 1;
-    min-width: auto;
-}
-.chord-container {
+.player-controls {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    justify-content: center;
+    margin-top: 20px;
 }
 
-.chord {
-    font-family: monospace;
-    font-size: 20px;
-    color: #333;
+.play-button {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 24px;
+    line-height: 1;
+    min-width: auto;
 }
