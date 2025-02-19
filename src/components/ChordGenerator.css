@@ -208,6 +208,13 @@ button:hover {
     margin-top: 20px;
 }
 
+.player-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
 .play-button {
     width: 48px;
     height: 48px;
@@ -216,4 +223,57 @@ button:hover {
     font-size: 24px;
     line-height: 1;
     min-width: auto;
+}
+
+/* Chord Mode Toggle */
+.chord-mode-toggle {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.chord-toggle-input {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    appearance: none;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.chord-toggle-input:checked {
+    background-color: #4a90e2;
+}
+
+.chord-toggle-input:before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    background-color: white;
+    transition: left 0.3s;
+}
+
+.chord-toggle-input:checked:before {
+    left: 18px;
+}
+
+.toggle-label {
+    font-size: 14px;
+    color: #555;
+    width: 80px;
+    text-align: left;
 }
