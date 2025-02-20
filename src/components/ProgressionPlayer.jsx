@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { audioEngine } from '../lib/audio';
+import SynthControls from './SynthControls';
 
 const TEMPO_MARKS = {
   largo: 50,      // Very slow and broad
@@ -13,6 +14,7 @@ const ProgressionPlayer = ({ progression }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playFullChords, setPlayFullChords] = useState(false);
   const [tempo, setTempo] = useState('moderato');
+  const [currentPreset, setCurrentPreset] = useState('strings');
 
   useEffect(() => {
     handleStop();
@@ -24,11 +26,11 @@ const ProgressionPlayer = ({ progression }) => {
 
   const getTempoColor = () => {
     switch(tempo) {
-      case 'largo': return '#4a90e2';  // Cool blue for slow
-      case 'adagio': return '#45b7d1'; // Light blue
-      case 'moderato': return '#4aae8c'; // Teal
-      case 'allegro': return '#e2984a'; // Warm orange
-      case 'presto': return '#e24a4a';  // Hot red
+      case 'largo': return '#4a90e2';
+      case 'adagio': return '#45b7d1';
+      case 'moderato': return '#4aae8c';
+      case 'allegro': return '#e2984a';
+      case 'presto': return '#e24a4a';
       default: return '#4a90e2';
     }
   };
@@ -66,6 +68,20 @@ const ProgressionPlayer = ({ progression }) => {
     }
   };
 
+  const handlePresetChange = (preset) => {
+    setCurrentPreset(preset);
+    audioEngine.setPreset(preset);
+    
+    // If playing, briefly stop and restart to apply new preset
+    if (isPlaying) {
+      handleStop();
+      setTimeout(() => {
+        audioEngine.startProgressionPlayback(progression, playFullChords, TEMPO_MARKS[tempo]);
+        setIsPlaying(true);
+      }, 100);
+    }
+  };
+
   const toggleChordMode = (e) => {
     e.stopPropagation();
     const wasPlaying = isPlaying;
@@ -93,44 +109,53 @@ const ProgressionPlayer = ({ progression }) => {
 
   return (
     <div className="player-container">
-      <div className="tempo-control">
-        <select 
-          value={tempo}
-          onChange={handleTempoChange}
-          className="tempo-select"
-          style={{ 
-            borderColor: getTempoColor(),
-            color: getTempoColor()
-          }}
-        >
-          <option value="largo">Largo (Very Slow)</option>
-          <option value="adagio">Adagio (Slow)</option>
-          <option value="moderato">Moderato (Medium)</option>
-          <option value="allegro">Allegro (Fast)</option>
-          <option value="presto">Presto (Very Fast)</option>
-        </select>
-      </div>
-      
-      <button 
-        onClick={handlePlayPause}
-        className="play-button"
-        aria-label={isPlaying ? "Pause" : "Play"}
-      >
-        {isPlaying ? '⏸' : '▶'}
-      </button>
-      
-      <div className="chord-mode-toggle">
-        <label className="toggle-container">
-          <input
-            type="checkbox"
-            checked={playFullChords}
-            onChange={toggleChordMode}
-            className="chord-toggle-input"
-          />
-          <span className="toggle-label">
-            {playFullChords ? 'Full Chords' : 'Root Notes'}
-          </span>
-        </label>
+      <div className="flex flex-col gap-4 w-full">
+        <SynthControls 
+          onPresetChange={handlePresetChange}
+          currentPreset={currentPreset}
+        />
+        
+        <div className="flex items-center justify-center gap-4">
+          <div className="tempo-control">
+            <select 
+              value={tempo}
+              onChange={handleTempoChange}
+              className="tempo-select"
+              style={{ 
+                borderColor: getTempoColor(),
+                color: getTempoColor()
+              }}
+            >
+              <option value="largo">Largo (Very Slow)</option>
+              <option value="adagio">Adagio (Slow)</option>
+              <option value="moderato">Moderato (Medium)</option>
+              <option value="allegro">Allegro (Fast)</option>
+              <option value="presto">Presto (Very Fast)</option>
+            </select>
+          </div>
+          
+          <button 
+            onClick={handlePlayPause}
+            className="play-button"
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? '⏸' : '▶'}
+          </button>
+        </div>
+        
+        <div className="chord-mode-toggle">
+          <label className="toggle-container">
+            <input
+              type="checkbox"
+              checked={playFullChords}
+              onChange={toggleChordMode}
+              className="chord-toggle-input"
+            />
+            <span className="toggle-label">
+              {playFullChords ? 'Full Chords' : 'Root Notes'}
+            </span>
+          </label>
+        </div>
       </div>
     </div>
   );
