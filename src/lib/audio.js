@@ -115,57 +115,61 @@ class AudioEngine {
         });
     }
 
-    playChord(chord, playFullChord = false, duration = 0.8) {
-        if (!this.audioContext) this.init();
-        
-        if (!playFullChord) {
-            // Just play the root note if full chord playback is disabled
-            const rootNote = chord.replace(/m|dim|aug|maj7|7|sus[24]/g, '');
-            this.playNote(rootNote, 4, duration);
-            return;
-        }
-        
-        const parsedChord = this.parseChord(chord);
-        if (!parsedChord) {
-            console.error('Could not parse chord:', chord);
-            return;
-        }
-        
-        const { root, type } = parsedChord;
-        const chordNotes = this.getChordNotes(root, type);
-        
-        if (chordNotes.length === 0) {
-            console.error('Could not get notes for chord:', chord);
-            this.playNote(root, 4, duration); // Fallback to root note
-            return;
-        }
-        
-        // Play the chord notes in root position with clear stacking in thirds
-        const baseOctave = 3; // Root note starts in a lower octave
-        
-        chordNotes.forEach((note, index) => {
-            // Stack all chords in root position
-            // Root note stays in base octave, subsequent notes stack upward
-            let noteOctave = baseOctave + Math.floor(index / 3);
-            
-            // Ensure root is always the lowest note
-            if (index === 0) {
-                noteOctave = baseOctave;  // Root note stays in base octave
-            }
-            
-            // Adjust velocities for balanced root position voicing
-            let velocity;
-            if (index === 0) velocity = 0.30; // Root note slightly stronger
-            else if (index === 1) velocity = 0.23; // Third
-            else velocity = 0.20; // Fifth and any extensions
-            
-            // Slight delay for a subtle arpeggiated effect
-            const delay = index * 0.015;
-            setTimeout(() => {
-                this.playNote(note, noteOctave, duration - 0.05, velocity);
-            }, delay * 1000);
-        });
+// Updated playChord method with proper root position voicing
+playChord(chord, playFullChord = false, duration = 0.8) {
+    if (!this.audioContext) this.init();
+    
+    if (!playFullChord) {
+        // Just play the root note if full chord playback is disabled
+        const rootNote = chord.replace(/m|dim|aug|maj7|7|sus[24]/g, '');
+        this.playNote(rootNote, 4, duration);
+        return;
     }
+    
+    const parsedChord = this.parseChord(chord);
+    if (!parsedChord) {
+        console.error('Could not parse chord:', chord);
+        return;
+    }
+    
+    const { root, type } = parsedChord;
+    const chordNotes = this.getChordNotes(root, type);
+    
+    if (chordNotes.length === 0) {
+        console.error('Could not get notes for chord:', chord);
+        this.playNote(root, 4, duration); // Fallback to root note
+        return;
+    }
+    
+    const baseOctave = 3;
+    
+    // Ensure proper root position by checking note positions relative to root
+    const rootIndex = NOTES.indexOf(root);
+    chordNotes.forEach((note, index) => {
+        const noteIndex = NOTES.indexOf(note);
+        let noteOctave = baseOctave;
+        
+        // If the note's index is less than the root's index, it needs to be in the next octave
+        // This ensures the root is always the lowest note
+        if (noteIndex < rootIndex && index > 0) {
+            noteOctave += 1;
+        }
+        // If it's not the root and its index is greater than or equal to the root's index,
+        // keep it in the same octave as it will naturally be higher
+        
+        // Adjust velocities for balanced voicing
+        let velocity;
+        if (index === 0) velocity = 0.30; // Root note slightly stronger
+        else if (index === 1) velocity = 0.23; // Third
+        else velocity = 0.20; // Fifth and any extensions
+        
+        // Slight delay for a subtle arpeggiated effect
+        const delay = index * 0.015;
+        setTimeout(() => {
+            this.playNote(note, noteOctave, duration - 0.05, velocity);
+        }, delay * 1000);
+    });
+}
 
     startProgressionPlayback(chords, playFullChords = false, tempo = 120) {
         if (!this.audioContext) this.init();
