@@ -30,14 +30,14 @@ class SynthVoice {
         this.context = context;
         this.oscillators = [];
         this.masterGain = this.context.createGain();
-        this.masterGain.gain.value = 0;
+        this.masterGain.gain.value = 0;  // Start silent
     }
 
     connect(destination) {
         this.masterGain.connect(destination);
     }
 
-    start(frequency, preset, velocity = 0.7) {
+    start(frequency, preset, velocity = 0.3) {  // Reduced default velocity from 0.7 to 0.3
         const osc = this.context.createOscillator();
         const gainNode = this.context.createGain();
         
@@ -52,8 +52,8 @@ class SynthVoice {
         this.masterGain.gain.cancelScheduledValues(now);
         this.masterGain.gain.setValueAtTime(0, now);
         
-        // Apply preset envelope
-        this.masterGain.gain.linearRampToValueAtTime(velocity, now + preset.envelope.attack);
+        // Apply preset envelope with reduced velocity
+        this.masterGain.gain.linearRampToValueAtTime(velocity * 0.5, now + preset.envelope.attack);  // Further reduce the peak volume
         
         osc.start(now);
         this.oscillators.push({ osc, gain: gainNode });
@@ -92,6 +92,7 @@ class SynthEngine {
     constructor(audioContext) {
         this.context = audioContext;
         this.masterGain = this.context.createGain();
+        this.masterGain.gain.value = 0.3;  // Set a lower master volume
         this.masterGain.connect(this.context.destination);
         this.activeVoices = new Map();
         this.currentPreset = SYNTH_PRESETS.strings;
