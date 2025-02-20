@@ -1,12 +1,6 @@
 import React from 'react';
 import { SYNTH_PRESETS } from '../lib/synth/SynthEngine';
 
-const PRESET_DESCRIPTIONS = {
-    strings: "Warm, evolving string ensemble sound with slow attack and release",
-    organ: "Quick attack and release, perfect for rhythmic chord progressions",
-    pad: "Atmospheric pad with long release, ideal for slow progressions"
-};
-
 const SynthControls = ({ onPresetChange, currentPreset = 'strings' }) => {
     return (
         <div className="flex flex-col gap-4 p-4 bg-gray-100 rounded-lg">
@@ -25,10 +19,6 @@ const SynthControls = ({ onPresetChange, currentPreset = 'strings' }) => {
                         </option>
                     ))}
                 </select>
-            </div>
-
-            <div className="text-xs text-gray-500 mt-2">
-                {PRESET_DESCRIPTIONS[currentPreset]}
             </div>
         </div>
     );
