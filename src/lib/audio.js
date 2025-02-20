@@ -1,5 +1,4 @@
 // src/lib/audio.js
-// src/lib/audio.js
 import { CHORD_INTERVALS, NOTES } from './core';
 
 class AudioEngine {
@@ -141,37 +140,24 @@ class AudioEngine {
             return;
         }
         
-        // Play the chord notes with slightly different velocities for balance
-        // Using a more optimized voicing setup
-        const baseOctave = 3; // Start an octave lower for fuller sound
+        // Play the chord notes in root position with clear stacking in thirds
+        const baseOctave = 3; // Root note starts in a lower octave
         
         chordNotes.forEach((note, index) => {
-            // Determine octave based on note position in chord
-            // This creates a more pleasing inversion
-            let noteOctave = baseOctave;
+            // Stack all chords in root position
+            // Root note stays in base octave, subsequent notes stack upward
+            let noteOctave = baseOctave + Math.floor(index / 3);
             
-            // For 7th chords and extended chords, place them in better octaves
-            if (index === 0) { 
-                // Root note
-                noteOctave = baseOctave;
-            } else if (index === chordNotes.length - 1 && chordNotes.length > 3) {
-                // If it's the highest note in a 7th chord, place it in the same octave
-                // This helps with close voicings
-                noteOctave = baseOctave + 1;
-            } else if (index === 1 && chordNotes.length > 3) {
-                // For the third in a seventh chord
-                noteOctave = baseOctave;
-            } else {
-                // For other notes, gradually increase octave
-                noteOctave = baseOctave + (index > 2 ? 1 : 0);
+            // Ensure root is always the lowest note
+            if (index === 0) {
+                noteOctave = baseOctave;  // Root note stays in base octave
             }
             
-            // Adjust velocity for balance
+            // Adjust velocities for balanced root position voicing
             let velocity;
-            if (index === 0) velocity = 0.28; // Root note
-            else if (index === 1) velocity = 0.25; // Third
-            else if (index === 2) velocity = 0.22; // Fifth
-            else velocity = 0.20; // Other notes softer
+            if (index === 0) velocity = 0.30; // Root note slightly stronger
+            else if (index === 1) velocity = 0.23; // Third
+            else velocity = 0.20; // Fifth and any extensions
             
             // Slight delay for a subtle arpeggiated effect
             const delay = index * 0.015;
