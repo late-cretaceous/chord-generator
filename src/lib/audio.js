@@ -1,5 +1,5 @@
 // src/lib/audio.js
-import { NOTES } from './core';
+import { NOTES, CHORD_INTERVALS } from './core';
 import { SynthEngine } from './synth/SynthEngine';
 
 class AudioEngine {
@@ -27,16 +27,50 @@ class AudioEngine {
         return a4 * Math.pow(2, noteNumber / 12);
     }
 
+    parseChord(chordSymbol) {
+        // Parse chord symbol into root note and quality
+        const rootPattern = /^[A-G][#]?/;
+        const rootMatch = chordSymbol.match(rootPattern);
+        
+        if (!rootMatch) return null;
+        
+        const rootNote = rootMatch[0];
+        let chordType = chordSymbol.slice(rootNote.length);
+        
+        // Map chord symbols to quality
+        const chordTypeMap = {
+            '': 'major',
+            'm': 'minor',
+            'min': 'minor',
+            'dim': 'diminished',
+            'aug': 'augmented',
+            'maj7': 'major7',
+            '7': 'dominant7',
+            'm7': 'minor7',
+            'dim7': 'diminished7'
+        };
+        
+        return {
+            root: rootNote,
+            type: chordTypeMap[chordType] || 'major'
+        };
+    }
+
+    getChordNotes(rootNote, chordType) {
+        const rootIndex = NOTES.indexOf(rootNote);
+        if (rootIndex === -1) return [rootNote];
+        
+        const intervals = CHORD_INTERVALS[chordType];
+        if (!intervals) return [rootNote];
+        
+        return intervals.map(interval => {
+            const noteIndex = (rootIndex + interval) % 12;
+            return NOTES[noteIndex];
+        });
+    }
+
     playChord(chord, playFullChord = false, duration = 0.8) {
         if (!this.audioContext) this.init();
-        
-        if (!playFullChord) {
-            // Just play the root note
-            const rootNote = chord.replace(/m|dim|aug|maj7|7|sus[24]/g, '');
-            const frequency = this.noteToFrequency(rootNote, 4);
-            if (frequency) this.synthEngine.playNote(frequency);
-            return;
-        }
         
         const parsedChord = this.parseChord(chord);
         if (!parsedChord) return;
@@ -44,6 +78,14 @@ class AudioEngine {
         const { root, type } = parsedChord;
         const chordNotes = this.getChordNotes(root, type);
         
+        if (!playFullChord) {
+            // Play just the root note at octave 4
+            const frequency = this.noteToFrequency(root, 4);
+            if (frequency) this.synthEngine.playNote(frequency);
+            return;
+        }
+        
+        // Play full chord with appropriate voicing
         const baseOctave = 3;
         const rootIndex = NOTES.indexOf(root);
         
@@ -51,6 +93,7 @@ class AudioEngine {
             const noteIndex = NOTES.indexOf(note);
             let noteOctave = baseOctave;
             
+            // Adjust octave to keep notes close together
             if (noteIndex < rootIndex && index > 0) {
                 noteOctave += 1;
             }
@@ -58,36 +101,6 @@ class AudioEngine {
             const frequency = this.noteToFrequency(note, noteOctave);
             if (frequency) this.synthEngine.playNote(frequency);
         });
-    }
-
-    parseChord(chordSymbol) {
-        // Keep existing parse chord implementation
-        const rootPattern = /^[A-G][#]?/;
-        const rootMatch = chordSymbol.match(rootPattern);
-        
-        if (!rootMatch) return null;
-        
-        const rootNote = rootMatch[0];
-        const chordType = chordSymbol.slice(rootNote.length) || 'major';
-        
-        const chordTypeMap = {
-            '': 'major',
-            'm': 'minor',
-            'min': 'minor',
-            'maj': 'major',
-            'dim': 'diminished',
-            'aug': 'augmented'
-        };
-        
-        return { 
-            root: rootNote, 
-            type: chordTypeMap[chordType] || 'major' 
-        };
-    }
-
-    getChordNotes(rootNote, chordType) {
-        // Keep existing getChordNotes implementation
-        return [rootNote]; // Simplified for debugging
     }
 
     startProgressionPlayback(chords, playFullChords = false, tempo = 120) {
@@ -132,9 +145,14 @@ class AudioEngine {
         }
         this.currentChordIndex = 0;
         
-        // Immediately stop all sounds
         if (this.synthEngine) {
             this.synthEngine.stopAllNotes(true);
+        }
+    }
+
+    setPreset(preset) {
+        if (this.synthEngine) {
+            this.synthEngine.setPreset(preset);
         }
     }
 

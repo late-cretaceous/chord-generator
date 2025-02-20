@@ -7,7 +7,8 @@
 │   ├── components
 │   │   ├── ChordGenerator.css
 │   │   ├── ChordGenerator.jsx
-│   │   └── ProgressionPlayer.jsx
+│   │   ├── ProgressionPlayer.jsx
+│   │   └── SynthControls.jsx
 │   ├── docs
 │   │   └── project-directory-tree.md
 │   ├── lib
@@ -20,6 +21,8 @@
 │   │   │   ├── mode-lydian.js
 │   │   │   ├── mode-mixolydian.js
 │   │   │   └── mode-phrygian.js
+│   │   ├── synth
+│   │   │   └── SynthEngine.js
 │   │   ├── audio.js
 │   │   ├── core.js
 │   │   └── logic.js
