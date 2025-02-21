@@ -28,14 +28,19 @@ class AudioEngine {
     }
 
     parseChord(chordSymbol) {
-        // Parse chord symbol into root note and quality
+        // Check for slash chord notation (inversions)
+        const slashParts = chordSymbol.split('/');
+        const mainChord = slashParts[0];
+        const bassNote = slashParts[1]; // Will be undefined if no slash
+    
+        // Parse main chord symbol into root note and quality
         const rootPattern = /^[A-G][#]?/;
-        const rootMatch = chordSymbol.match(rootPattern);
+        const rootMatch = mainChord.match(rootPattern);
         
         if (!rootMatch) return null;
         
         const rootNote = rootMatch[0];
-        let chordType = chordSymbol.slice(rootNote.length);
+        let chordType = mainChord.slice(rootNote.length);
         
         // Map chord symbols to quality
         const chordTypeMap = {
@@ -52,7 +57,8 @@ class AudioEngine {
         
         return {
             root: rootNote,
-            type: chordTypeMap[chordType] || 'major'
+            type: chordTypeMap[chordType] || 'major',
+            bassNote: bassNote // This will be undefined for non-inverted chords
         };
     }
 
@@ -69,26 +75,47 @@ class AudioEngine {
         });
     }
 
-    playChord(chord, playFullChord = false, duration = 0.8) {
-        if (!this.audioContext) this.init();
+
+playChord(chord, playFullChord = false, duration = 0.8) {
+    if (!this.audioContext) this.init();
+    
+    const parsedChord = this.parseChord(chord);
+    if (!parsedChord) return;
+    
+    const { root, type, bassNote } = parsedChord;
+    const chordNotes = this.getChordNotes(root, type);
+    
+    if (!playFullChord) {
+        // For non-full chord mode, play the bass note if it's an inversion, otherwise the root
+        const noteToPlay = bassNote || root;
+        const frequency = this.noteToFrequency(noteToPlay, 4);
+        if (frequency) this.synthEngine.playNote(frequency);
+        return;
+    }
+    
+    // Play full chord with appropriate voicing
+    const baseOctave = 3;
+    const rootIndex = NOTES.indexOf(root);
+    
+    // If there's a specified bass note (slash chord), handle it differently
+    if (bassNote) {
+        // Play the bass note first
+        const bassFrequency = this.noteToFrequency(bassNote, baseOctave);
+        if (bassFrequency) this.synthEngine.playNote(bassFrequency);
         
-        const parsedChord = this.parseChord(chord);
-        if (!parsedChord) return;
-        
-        const { root, type } = parsedChord;
-        const chordNotes = this.getChordNotes(root, type);
-        
-        if (!playFullChord) {
-            // Play just the root note at octave 4
-            const frequency = this.noteToFrequency(root, 4);
-            if (frequency) this.synthEngine.playNote(frequency);
-            return;
-        }
-        
-        // Play full chord with appropriate voicing
-        const baseOctave = 3;
-        const rootIndex = NOTES.indexOf(root);
-        
+        // Then play the rest of the chord notes, excluding any that match the bass
+        // to avoid doubling
+        chordNotes.forEach((note, index) => {
+            if (note !== bassNote) {
+                const noteIndex = NOTES.indexOf(note);
+                let noteOctave = baseOctave + 1; // Play upper notes an octave higher
+                
+                const frequency = this.noteToFrequency(note, noteOctave);
+                if (frequency) this.synthEngine.playNote(frequency);
+            }
+        });
+    } else {
+        // Regular (non-inverted) chord handling
         chordNotes.forEach((note, index) => {
             const noteIndex = NOTES.indexOf(note);
             let noteOctave = baseOctave;
@@ -102,6 +129,7 @@ class AudioEngine {
             if (frequency) this.synthEngine.playNote(frequency);
         });
     }
+}
 
     startProgressionPlayback(chords, playFullChords = false, tempo = 120) {
         if (!this.audioContext) this.init();

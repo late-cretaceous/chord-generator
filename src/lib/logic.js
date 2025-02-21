@@ -1,5 +1,7 @@
 import { MODES } from './modes';
 import { NOTES, MODE_PATTERNS } from './core';
+// Use the fixed inversions implementation
+import { applyProgressionInversions } from './inversions';
 
 /**
  * Determines the correct case for the tonic chord based on its quality
@@ -18,9 +20,10 @@ function getTonicChord(mode) {
  * Selects the next chord based on transition probabilities
  * @param {string} currentChord - Current chord in roman numeral notation
  * @param {Object} transitions - Transition probability matrix
+ * @param {Object} mode - Mode definition containing chord qualities
  * @returns {string} Next chord in roman numeral notation
  */
-export function selectNextChord(currentChord, transitions) {
+export function selectNextChord(currentChord, transitions, mode) {
     if (!transitions || !currentChord) {
         console.error('Invalid transitions or currentChord:', { transitions, currentChord });
         return 'I'; // Default to tonic if there's an error
@@ -32,20 +35,11 @@ export function selectNextChord(currentChord, transitions) {
         return getTonicChord(mode); // Return appropriate tonic if no transitions found
     }
 
-    // Check if probabilities need normalization
-    const totalProbability = Object.values(probabilities).reduce((sum, p) => sum + p, 0);
-    
     const random = Math.random();
     let cumulativeProbability = 0;
     
     for (const [chord, probability] of Object.entries(probabilities)) {
-        // If probabilities sum to roughly 1 (with small floating-point tolerance), use as is
-        // Otherwise, normalize by dividing by the total
-        const normalizedProbability = Math.abs(totalProbability - 1.0) < 0.01 
-            ? probability 
-            : probability / totalProbability;
-            
-        cumulativeProbability += normalizedProbability;
+        cumulativeProbability += probability;
         if (random <= cumulativeProbability) {
             return chord;
         }
@@ -71,7 +65,7 @@ export function generateChordProgression(length = 4, mode = MODES.ionian) {
     
     for (let i = 1; i < length; i++) {
         const currentChord = progression[progression.length - 1];
-        const nextChord = selectNextChord(currentChord, mode.transitions);
+        const nextChord = selectNextChord(currentChord, mode.transitions, mode);
         progression.push(nextChord);
     }
     
@@ -101,10 +95,21 @@ function getScaleDegreeRoot(key, scaleDegree, mode) {
 /**
  * Get the correct modal root based on key and mode
  * @param {string} key - The tonic key (e.g., 'C')
- * @param {string} modeName - The mode name (e.g., 'dorian')
+ * @param {string|Object} mode - The mode object or name
  * @returns {string} The modal root note
  */
-function calculateModalRoot(key, modeName) {
+function calculateModalRoot(key, mode) {
+    // Extract the mode name regardless of whether it's passed as a string or object
+    let modeName;
+    if (typeof mode === 'string') {
+        modeName = mode;
+    } else if (mode && mode.name) {
+        modeName = mode.name;
+    } else {
+        // Default to ionian if no mode name is found
+        modeName = 'ionian';
+    }
+
     const modeSteps = {
         'ionian': 0,     // Same as key
         'dorian': 1,     // Second scale degree
@@ -144,17 +149,25 @@ export function romanToChordSymbols(progression, key = 'C', mode = MODES.ionian)
 
     // Create case-insensitive map of roman numerals to degrees and qualities
     const romanNumeralMap = {};
-    progression.forEach(numeral => {
+    for (let i = 0; i < progression.length; i++) {
+        const numeral = progression[i];
         const degree = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
             .indexOf(numeral.toLowerCase());
         
         const quality = mode.chordQualities[numeral];
         if (degree !== -1 && quality) {
             romanNumeralMap[numeral] = { degree, quality };
+        } else {
+            console.error(`Could not map roman numeral: ${numeral}`);
         }
-    });
+    }
 
     return progression.map(numeral => {
+        if (!romanNumeralMap[numeral]) {
+            // If we can't map this numeral, return something reasonable
+            return 'C';
+        }
+        
         const { degree, quality } = romanNumeralMap[numeral];
         const root = getScaleDegreeRoot(key, degree, mode);
         const suffix = quality === 'major' ? '' : 
@@ -168,18 +181,37 @@ export function romanToChordSymbols(progression, key = 'C', mode = MODES.ionian)
  * Main composition function that generates a complete chord progression
  * @param {number} length - Desired length of progression
  * @param {string} key - Key to generate progression in
- * @param {Object} mode - Mode definition to use
+ * @param {string|Object} modeName - Mode name or definition to use
+ * @param {boolean} useInversions - Whether to apply intelligent inversions
  * @returns {string[]} Array of chord symbols
  */
-export function generateProgression(length = 4, key = 'C', mode = MODES.ionian) {
+export function generateProgression(length = 4, key = 'C', modeName = 'ionian', useInversions = true) {
+    // Determine which mode to use
+    let mode;
+    if (typeof modeName === 'string') {
+        mode = MODES[modeName] || MODES.ionian;
+    } else {
+        mode = modeName; // Assume we were passed a mode object directly
+    }
+
     if (!mode) {
-        console.error('Invalid mode, falling back to ionian:', mode);
+        console.error('Invalid mode, falling back to ionian');
         mode = MODES.ionian;
     }
 
     // Calculate the actual root note for the mode
-    const modalRoot = calculateModalRoot(key, mode.name || 'ionian');
+    const modalRoot = calculateModalRoot(key, mode);
     
+    // Generate roman numeral progression
     const romanNumerals = generateChordProgression(length, mode);
-    return romanToChordSymbols(romanNumerals, modalRoot, mode);
+    
+    // Convert to chord symbols
+    const progression = romanToChordSymbols(romanNumerals, modalRoot, mode);
+    
+    // Apply inversions for better voice leading if option is enabled
+    if (useInversions) {
+        return applyProgressionInversions(progression);
+    }
+    
+    return progression;
 }

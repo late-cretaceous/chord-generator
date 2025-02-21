@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
 import { NOTES } from '../lib/core';
@@ -10,6 +10,8 @@ const ChordGenerator = () => {
   const [length, setLength] = useState(4);
   const [selectedMode, setSelectedMode] = useState('ionian');
   const [selectedKey, setSelectedKey] = useState('C');
+  const [useInversions, setUseInversions] = useState(true);
+  const [debug, setDebug] = useState({});
 
   const handleLengthChange = (event) => {
     const newLength = parseInt(event.target.value, 10);
@@ -26,10 +28,51 @@ const ChordGenerator = () => {
     setSelectedKey(event.target.value);
   };
 
-  const handleGenerate = () => {
-    const mode = MODES[selectedMode] || MODES.ionian;
-    setProgression(generateProgression(length, selectedKey, mode));
+  const handleInversionToggle = () => {
+    setUseInversions(!useInversions);
   };
+
+  const handleGenerate = () => {
+    // Store the parameters we're using for debugging
+    const debugInfo = {
+      length,
+      key: selectedKey,
+      mode: selectedMode,
+      useInversions
+    };
+    
+    // Generate the progression
+    const mode = MODES[selectedMode] || MODES.ionian;
+    const newProgression = generateProgression(length, selectedKey, mode, useInversions);
+    
+    // Update the debug info with the result
+    debugInfo.generatedProgression = newProgression;
+    setDebug(debugInfo);
+    
+    // Set the progression state
+    setProgression(newProgression);
+  };
+
+  // Function to highlight and format slash chord notation
+  const formatChord = (chord) => {
+    if (chord && chord.includes('/')) {
+      const [base, bass] = chord.split('/');
+      return (
+        <>
+          {base}<span className="chord-inversion">/{bass}</span>
+        </>
+      );
+    }
+    return chord;
+  };
+
+  // Effect to log progression changes
+  useEffect(() => {
+    if (progression.length > 0) {
+      console.log('Progression updated:', progression);
+      console.log('Any slash chords?', progression.some(chord => chord.includes('/')));
+    }
+  }, [progression]);
 
   return (
     <div className="container">
@@ -42,7 +85,7 @@ const ChordGenerator = () => {
               <div className="progression">
                 {progression.map((chord, index) => (
                   <div key={index} className="chord">
-                    {chord}
+                    {formatChord(chord)}
                   </div>
                 ))}
               </div>
@@ -51,6 +94,13 @@ const ChordGenerator = () => {
                   progression={progression}
                   maintainPlayback={true} 
                 />
+              </div>
+              
+              {/* Add debug info */}
+              <div className="debug-info" style={{ fontSize: '12px', color: '#666', margin: '10px 0', textAlign: 'left', width: '100%' }}>
+                <div>Generated with: {JSON.stringify(debug, null, 2)}</div>
+                <div>Raw progression: {JSON.stringify(progression)}</div>
+                <div>Contains slash chords: {progression.some(chord => chord && chord.includes('/')).toString()}</div>
               </div>
             </>
           ) : (
@@ -110,6 +160,23 @@ const ChordGenerator = () => {
               <span>2</span>
               <span>8</span>
             </div>
+          </div>
+
+          <div className="chord-mode-toggle inversion-toggle">
+            <label className="toggle-container">
+              <input
+                type="checkbox"
+                checked={useInversions}
+                onChange={handleInversionToggle}
+                className="chord-toggle-input"
+              />
+              <span className="toggle-label">
+                Use Inversions
+              </span>
+            </label>
+            <span className="toggle-hint">
+              Apply voice leading with slash chords
+            </span>
           </div>
 
           <button onClick={handleGenerate}>
