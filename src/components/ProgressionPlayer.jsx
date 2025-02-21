@@ -109,31 +109,31 @@ const ProgressionPlayer = ({ progression }) => {
 
   return (
     <div className="player-container">
-      <div className="flex flex-col gap-4 w-full">
+      <div className="player-flex-container">
         <SynthControls 
           onPresetChange={handlePresetChange}
           currentPreset={currentPreset}
         />
         
-        <div className="flex items-center justify-center gap-4">
-          <div className="tempo-control">
-            <select 
-              value={tempo}
-              onChange={handleTempoChange}
-              className="tempo-select"
-              style={{ 
-                borderColor: getTempoColor(),
-                color: getTempoColor()
-              }}
-            >
-              <option value="largo">Largo (Very Slow)</option>
-              <option value="adagio">Adagio (Slow)</option>
-              <option value="moderato">Moderato (Medium)</option>
-              <option value="allegro">Allegro (Fast)</option>
-              <option value="presto">Presto (Very Fast)</option>
-            </select>
-          </div>
-          
+        <div className="tempo-control">
+          <select 
+            value={tempo}
+            onChange={handleTempoChange}
+            className="tempo-select"
+            style={{ 
+              borderColor: getTempoColor(),
+              color: getTempoColor()
+            }}
+          >
+            <option value="largo">Largo (Very Slow)</option>
+            <option value="adagio">Adagio (Slow)</option>
+            <option value="moderato">Moderato (Medium)</option>
+            <option value="allegro">Allegro (Fast)</option>
+            <option value="presto">Presto (Very Fast)</option>
+          </select>
+        </div>
+        
+        <div className="play-button-container">
           <button 
             onClick={handlePlayPause}
             className="play-button"

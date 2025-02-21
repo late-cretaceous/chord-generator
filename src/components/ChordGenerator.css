@@ -215,12 +215,26 @@ button:hover {
     gap: 12px;
 }
 
+/* New classes to replace Tailwind */
+.player-flex-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.play-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+}
+
 .play-button {
-    width: 48px;
-    height: 48px;
+    width: 60px;
+    height: 60px;
     padding: 0;
     border-radius: 50%;
-    font-size: 24px;
+    font-size: 28px;
     line-height: 1;
     min-width: auto;
 }
@@ -280,10 +294,10 @@ button:hover {
 
 /* Tempo Control Styles */
 .tempo-control {
-    margin-bottom: 12px;
     width: 100%;
     display: flex;
     justify-content: center;
+    margin-bottom: 4px;
 }
 
 .tempo-select {
@@ -353,4 +367,3 @@ button:hover {
     border-color: #4a90e2;
     box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
-
