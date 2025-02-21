@@ -32,11 +32,20 @@ export function selectNextChord(currentChord, transitions) {
         return getTonicChord(mode); // Return appropriate tonic if no transitions found
     }
 
+    // Check if probabilities need normalization
+    const totalProbability = Object.values(probabilities).reduce((sum, p) => sum + p, 0);
+    
     const random = Math.random();
     let cumulativeProbability = 0;
     
     for (const [chord, probability] of Object.entries(probabilities)) {
-        cumulativeProbability += probability;
+        // If probabilities sum to roughly 1 (with small floating-point tolerance), use as is
+        // Otherwise, normalize by dividing by the total
+        const normalizedProbability = Math.abs(totalProbability - 1.0) < 0.01 
+            ? probability 
+            : probability / totalProbability;
+            
+        cumulativeProbability += normalizedProbability;
         if (random <= cumulativeProbability) {
             return chord;
         }
