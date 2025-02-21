@@ -10,14 +10,24 @@ const TEMPO_MARKS = {
   presto: 168     // Very fast
 };
 
-const ProgressionPlayer = ({ progression }) => {
+// Add maintainPlayback prop with default value of false
+const ProgressionPlayer = ({ progression, maintainPlayback = false }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playFullChords, setPlayFullChords] = useState(false);
   const [tempo, setTempo] = useState('moderato');
   const [currentPreset, setCurrentPreset] = useState('strings');
 
   useEffect(() => {
-    handleStop();
+    // Only stop playback if maintainPlayback is false
+    if (!maintainPlayback) {
+      handleStop();
+    } else if (isPlaying && progression.length > 0) {
+      // If maintainPlayback is true and we're already playing, start playing the new progression
+      audioEngine.stopProgressionPlayback();
+      setTimeout(() => {
+        audioEngine.startProgressionPlayback(progression, playFullChords, TEMPO_MARKS[tempo]);
+      }, 50);
+    }
   }, [progression]);
 
   useEffect(() => {

@@ -47,7 +47,10 @@ const ChordGenerator = () => {
                 ))}
               </div>
               <div className="player-controls">
-                <ProgressionPlayer progression={progression} />
+                <ProgressionPlayer 
+                  progression={progression}
+                  maintainPlayback={true} 
+                />
               </div>
             </>
           ) : (
