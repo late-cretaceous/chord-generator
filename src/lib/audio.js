@@ -114,7 +114,7 @@ class AudioEngine {
         
         this.isPlaying = true;
         this.currentChordIndex = 0;
-        const intervalTime = (60 / tempo) * 1000;
+        const intervalTime = (60 / tempo) * 2 * 1000;
 
         // Play first chord immediately
         if (chords.length > 0) {
