@@ -7,18 +7,14 @@ import { NOTES, CHORD_INTERVALS } from './core';
  * @returns {Array} Array of possible inversions with their notes and bass note
  */
 export function getChordInversions(rootNote, chordType) {
-    console.log(`Getting inversions for ${rootNote} ${chordType}`);
-    
     // Get the notes of the chord
     const intervals = CHORD_INTERVALS[chordType];
     if (!intervals) {
-        console.warn(`No intervals found for chord type: ${chordType}`);
         return [{ inversion: 0, bassNote: rootNote, notes: [rootNote] }];
     }
     
     const rootIndex = NOTES.indexOf(rootNote);
     if (rootIndex === -1) {
-        console.warn(`Invalid root note: ${rootNote}`);
         return [{ inversion: 0, bassNote: rootNote, notes: [rootNote] }];
     }
     
@@ -27,8 +23,6 @@ export function getChordInversions(rootNote, chordType) {
         const noteIndex = (rootIndex + interval) % 12;
         return NOTES[noteIndex];
     });
-    
-    console.log(`Notes in ${rootNote} ${chordType}: ${notes.join(', ')}`);
     
     // Generate inversions
     const inversions = [];
@@ -113,17 +107,15 @@ export function getInversionSymbol(rootNote, quality, inversion, notes) {
 
 /**
  * Makes a decision whether to use an inversion based on context
- * Higher probability for better testing
  * @param {number} position - Position in the progression (0-based)
  * @param {number} progressionLength - Total length of the progression
  * @returns {boolean} True if an inversion should be considered
  */
 export function shouldUseInversion(position, progressionLength) {
-    // Higher probability for testing
     if (position === 0) return Math.random() < 0.3; // 30% chance for first chord
     if (position === progressionLength - 1) return Math.random() < 0.5; // 50% chance for last chord
     
-    // Very likely to use inversions in the middle of progressions
+    // Likely to use inversions in the middle of progressions
     return Math.random() < 0.85; // 85% chance for middle chords
 }
 
@@ -133,8 +125,6 @@ export function shouldUseInversion(position, progressionLength) {
  * @returns {Array} Progression with inversions applied where appropriate
  */
 export function applyProgressionInversions(progression) {
-    console.log('Applying inversions to:', progression);
-    
     if (!progression || progression.length === 0) return progression;
     
     const result = [];
@@ -146,15 +136,12 @@ export function applyProgressionInversions(progression) {
         const rootMatch = chordSymbol.match(rootPattern);
         
         if (!rootMatch) {
-            console.warn(`Could not parse chord: ${chordSymbol}`);
             result.push(chordSymbol); // Can't parse, keep as is
             return;
         }
         
         const rootNote = rootMatch[0];
         let chordType = chordSymbol.slice(rootNote.length);
-        
-        console.log(`Processing chord ${index}: ${chordSymbol} (Root: ${rootNote}, Type: "${chordType}")`);
         
         // Map chord symbols to quality
         const chordTypeMap = {
@@ -170,11 +157,9 @@ export function applyProgressionInversions(progression) {
         };
         
         const quality = chordTypeMap[chordType] || 'major';
-        console.log(`Mapped to quality: ${quality}`);
         
         // Decide whether to consider an inversion
         if (!shouldUseInversion(index, progression.length)) {
-            console.log(`No inversion chosen for chord ${index}: ${chordSymbol}`);
             result.push(chordSymbol); // Keep in root position
             
             // Still update previousNotes for next chord
@@ -191,17 +176,15 @@ export function applyProgressionInversions(progression) {
         
         // Get all possible inversions
         const inversions = getChordInversions(rootNote, quality);
-        console.log(`Generated ${inversions.length} inversions for ${chordSymbol}`);
         
-        // For simplicity always use first inversion for testing
-        const bestInversion = inversions.length > 1 ? inversions[1] : inversions[0];
+        // Select best inversion
+        const bestInversion = selectBestInversion(inversions, previousNotes);
         
         // Update previous notes for next iteration
         previousNotes = bestInversion.notes;
         
         // Add the chord with inversion to the result
         if (bestInversion.inversion === 0) {
-            console.log(`Using root position for ${chordSymbol}`);
             result.push(chordSymbol); // Root position, no change needed
         } else {
             const inversionSymbol = getInversionSymbol(
@@ -210,11 +193,9 @@ export function applyProgressionInversions(progression) {
                 bestInversion.inversion,
                 bestInversion.notes
             );
-            console.log(`Applied inversion: ${chordSymbol} -> ${inversionSymbol}`);
             result.push(inversionSymbol);
         }
     });
     
-    console.log('Final progression with inversions:', result);
     return result;
 }

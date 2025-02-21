@@ -1,6 +1,5 @@
 import { MODES } from './modes';
 import { NOTES, MODE_PATTERNS } from './core';
-// Use the fixed inversions implementation
 import { applyProgressionInversions } from './inversions';
 
 /**
