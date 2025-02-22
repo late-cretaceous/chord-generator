@@ -4,7 +4,6 @@ import { generateProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
 import { NOTES } from '../lib/core';
 import ProgressionPlayer from './ProgressionPlayer';
-import MidiExportButton from './MidiExportButton';
 import './ChordGenerator.css';
 
 const ChordGenerator = () => {
@@ -71,17 +70,12 @@ const ChordGenerator = () => {
                   </div>
                 ))}
               </div>
-              <div className="player-controls">
-                <ProgressionPlayer 
-                  progression={progression}
-                  maintainPlayback={true}
-                  onTempoChange={handleTempoChange}
-                />
-                <MidiExportButton 
-                  progression={progression}
-                  tempo={currentTempo}
-                />
-              </div>
+              <ProgressionPlayer 
+                progression={progression}
+                maintainPlayback={true}
+                onTempoChange={handleTempoChange}
+                tempo={currentTempo}
+              />
             </>
           ) : (
             <p className="placeholder">

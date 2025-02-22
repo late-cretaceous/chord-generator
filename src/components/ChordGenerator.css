@@ -1,16 +1,16 @@
-/* Reset default margins and ensure full height */
+/* Base styles */
 body, html {
     margin: 0;
     padding: 0;
     height: 100%;
     width: 100%;
 }
-  
+
 #root {
     height: 100%;
     width: 100%;
 }
-  
+
 .container {
     min-height: 100vh;
     width: 100%;
@@ -21,7 +21,7 @@ body, html {
     padding: 20px;
     box-sizing: border-box;
 }
-  
+
 .card {
     background: white;
     border-radius: 8px;
@@ -30,14 +30,15 @@ body, html {
     width: 100%;
     max-width: 500px;
 }
-  
+
 h2 {
     text-align: center;
     margin: 0 0 20px 0;
     color: #333;
     font-size: 24px;
 }
-  
+
+/* Display and progression styles */
 .display {
     background-color: #f8f8f8;
     border: 1px solid #ddd;
@@ -50,7 +51,7 @@ h2 {
     margin-bottom: 20px;
     padding: 16px;
 }
-  
+
 .progression {
     display: flex;
     flex-wrap: wrap;
@@ -63,11 +64,12 @@ h2 {
     font-size: 20px;
     color: #333;
 }
-  
+
 .placeholder {
     color: #666;
 }
-  
+
+/* Control styles */
 .controls {
     display: flex;
     flex-direction: column;
@@ -79,7 +81,6 @@ h2 {
     gap: 16px;
 }
 
-/* Key and Mode controls share similar styles */
 .key-control,
 .mode-control {
     flex: 1;
@@ -114,115 +115,78 @@ h2 {
     padding-right: 30px;
 }
 
-.key-select:focus,
-.mode-select:focus {
-    outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-  
-.length-control {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-  
-.length-control label {
-    color: #333;
-    font-size: 16px;
-}
-  
-.length-slider {
-    width: 100%;
-    height: 4px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: #ddd;
-    border-radius: 2px;
-    outline: none;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-  
-.length-slider:hover {
-    opacity: 1;
-}
-  
-.length-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: #4a90e2;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-  
-.length-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: #4a90e2;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border: none;
-}
-  
-.length-slider::-webkit-slider-thumb:hover {
-    background: #357abd;
-}
-  
-.length-slider::-moz-range-thumb:hover {
-    background: #357abd;
-}
-  
-.slider-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: #666;
-    padding: 0 2px;
-    margin-top: 4px;
-}
-  
-button {
-    width: 100%;
-    padding: 12px;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-  
-button:hover {
-    background-color: #357abd;
-}
-
-.player-controls {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-}
-
+/* Player container and controls */
 .player-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    width: 100%;
+    margin-top: 16px;
 }
 
-/* New classes to replace Tailwind */
 .player-flex-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    align-items: center;
+    gap: 8px;
     width: 100%;
 }
 
+.player-controls-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+/* Tempo control */
+.tempo-control {
+    width: 160px;
+    display: flex;
+    justify-content: center;
+}
+
+.tempo-select {
+    width: 160px;
+    padding: 8px 30px 8px 12px;
+    border: 2px solid #4a90e2;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 12px;
+}
+
+/* Export button */
+.export-button {
+    background-color: #4CAF50;
+    transition: background-color 0.2s;
+    width: 160px;
+    height: 36px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: white;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.export-button:hover {
+    background-color: #45a049;
+}
+
+/* Play button */
 .play-button-container {
     display: flex;
     justify-content: center;
@@ -237,9 +201,16 @@ button:hover {
     font-size: 28px;
     line-height: 1;
     min-width: auto;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Chord Mode Toggle */
+/* Chord mode toggle */
 .chord-mode-toggle {
     display: flex;
     align-items: center;
@@ -292,43 +263,14 @@ button:hover {
     text-align: left;
 }
 
-/* Tempo Control Styles */
-.tempo-control {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 4px;
-}
-
-.tempo-select {
-    width: 160px;
-    padding: 8px 30px 8px 12px;
-    border: 2px solid #4a90e2;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 14px;
-    cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 12px;
-    transition: all 0.3s ease;
-}
-
-.tempo-select:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
-
+/* Synth controls */
 .synth-controls {
     background-color: #f8f8f8;
     border-radius: 8px;
     padding: 16px;
     margin-bottom: 16px;
+    width: 100%;
+    max-width: 160px;
 }
 
 .synth-control-row {
@@ -339,17 +281,18 @@ button:hover {
 
 .synth-label {
     color: #333;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .synth-select {
-    flex: 1;
+    width: 100%;
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
     background-color: white;
-    font-size: 16px;
+    font-size: 14px;
     color: #333;
     cursor: pointer;
     -webkit-appearance: none;
@@ -362,37 +305,21 @@ button:hover {
     padding-right: 30px;
 }
 
-.synth-select:focus {
-    outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
+/* Chord inversion styles */
 .chord-inversion {
     color: #4a90e2;
     font-weight: 500;
-  }
+}
 
-/* Add to existing toggle styles */
 .inversion-toggle {
     margin: 12px 0;
     display: flex;
     align-items: center;
     gap: 12px;
-  }
-  
-  .toggle-hint {
+}
+
+.toggle-hint {
     font-size: 12px;
     color: #666;
     font-style: italic;
-  }
-
-  .export-button {
-    background-color: #4CAF50;
-    margin-top: 12px;
-    transition: background-color 0.2s;
-}
-
-.export-button:hover {
-    background-color: #45a049;
 }

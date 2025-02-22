@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { audioEngine } from '../lib/audio';
 import SynthControls from './SynthControls';
+import MidiExportButton from './MidiExportButton';
 
 const TEMPO_MARKS = {
   largo: 50,      // Very slow and broad
@@ -11,7 +12,7 @@ const TEMPO_MARKS = {
   presto: 168     // Very fast
 };
 
-const ProgressionPlayer = ({ progression, maintainPlayback = false, onTempoChange }) => {
+const ProgressionPlayer = ({ progression, maintainPlayback = false, onTempoChange, tempo: currentTempo }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playFullChords, setPlayFullChords] = useState(false);
   const [tempo, setTempo] = useState('moderato');
@@ -67,7 +68,6 @@ const ProgressionPlayer = ({ progression, maintainPlayback = false, onTempoChang
     const newTempo = e.target.value;
     setTempo(newTempo);
     
-    // Call the prop with the actual BPM value
     if (onTempoChange) {
       onTempoChange(TEMPO_MARKS[newTempo]);
     }
@@ -127,22 +127,29 @@ const ProgressionPlayer = ({ progression, maintainPlayback = false, onTempoChang
           currentPreset={currentPreset}
         />
         
-        <div className="tempo-control">
-          <select 
-            value={tempo}
-            onChange={handleTempoChange}
-            className="tempo-select"
-            style={{ 
-              borderColor: getTempoColor(),
-              color: getTempoColor()
-            }}
-          >
-            <option value="largo">Largo (Very Slow)</option>
-            <option value="adagio">Adagio (Slow)</option>
-            <option value="moderato">Moderato (Medium)</option>
-            <option value="allegro">Allegro (Fast)</option>
-            <option value="presto">Presto (Very Fast)</option>
-          </select>
+        <div className="player-controls-group">
+          <div className="tempo-control">
+            <select 
+              value={tempo}
+              onChange={handleTempoChange}
+              className="tempo-select"
+              style={{ 
+                borderColor: getTempoColor(),
+                color: getTempoColor()
+              }}
+            >
+              <option value="largo">Largo (Very Slow)</option>
+              <option value="adagio">Adagio (Slow)</option>
+              <option value="moderato">Moderato (Medium)</option>
+              <option value="allegro">Allegro (Fast)</option>
+              <option value="presto">Presto (Very Fast)</option>
+            </select>
+          </div>
+          
+          <MidiExportButton 
+            progression={progression}
+            tempo={TEMPO_MARKS[tempo]}
+          />
         </div>
         
         <div className="play-button-container">
