@@ -26,6 +26,7 @@
 │   │   │   └── SynthEngine.js
 │   │   ├── audio.js
 │   │   ├── core.js
+│   │   ├── inversions.js
 │   │   └── logic.js
 │   ├── App.css
 │   ├── App.jsx
