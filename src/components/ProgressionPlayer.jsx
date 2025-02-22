@@ -1,3 +1,4 @@
+// src/components/ProgressionPlayer.jsx
 import React, { useState, useEffect } from 'react';
 import { audioEngine } from '../lib/audio';
 import SynthControls from './SynthControls';
@@ -10,19 +11,16 @@ const TEMPO_MARKS = {
   presto: 168     // Very fast
 };
 
-// Add maintainPlayback prop with default value of false
-const ProgressionPlayer = ({ progression, maintainPlayback = false }) => {
+const ProgressionPlayer = ({ progression, maintainPlayback = false, onTempoChange }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playFullChords, setPlayFullChords] = useState(false);
   const [tempo, setTempo] = useState('moderato');
   const [currentPreset, setCurrentPreset] = useState('strings');
 
   useEffect(() => {
-    // Only stop playback if maintainPlayback is false
     if (!maintainPlayback) {
       handleStop();
     } else if (isPlaying && progression.length > 0) {
-      // If maintainPlayback is true and we're already playing, start playing the new progression
       audioEngine.stopProgressionPlayback();
       setTimeout(() => {
         audioEngine.startProgressionPlayback(progression, playFullChords, TEMPO_MARKS[tempo]);
@@ -69,6 +67,11 @@ const ProgressionPlayer = ({ progression, maintainPlayback = false }) => {
     const newTempo = e.target.value;
     setTempo(newTempo);
     
+    // Call the prop with the actual BPM value
+    if (onTempoChange) {
+      onTempoChange(TEMPO_MARKS[newTempo]);
+    }
+    
     if (isPlaying) {
       handleStop();
       setTimeout(() => {
@@ -82,7 +85,6 @@ const ProgressionPlayer = ({ progression, maintainPlayback = false }) => {
     setCurrentPreset(preset);
     audioEngine.setPreset(preset);
     
-    // If playing, briefly stop and restart to apply new preset
     if (isPlaying) {
       handleStop();
       setTimeout(() => {

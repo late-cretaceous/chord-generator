@@ -1,8 +1,10 @@
+// src/components/ChordGenerator.jsx
 import React, { useState } from 'react';
 import { generateProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
 import { NOTES } from '../lib/core';
 import ProgressionPlayer from './ProgressionPlayer';
+import MidiExportButton from './MidiExportButton';
 import './ChordGenerator.css';
 
 const ChordGenerator = () => {
@@ -11,6 +13,7 @@ const ChordGenerator = () => {
   const [selectedMode, setSelectedMode] = useState('ionian');
   const [selectedKey, setSelectedKey] = useState('C');
   const [useInversions, setUseInversions] = useState(true);
+  const [currentTempo, setCurrentTempo] = useState(108); // Default to moderato tempo
 
   const handleLengthChange = (event) => {
     const newLength = parseInt(event.target.value, 10);
@@ -34,6 +37,10 @@ const ChordGenerator = () => {
   const handleGenerate = () => {
     const mode = MODES[selectedMode] || MODES.ionian;
     setProgression(generateProgression(length, selectedKey, mode, useInversions));
+  };
+
+  const handleTempoChange = (newTempo) => {
+    setCurrentTempo(newTempo);
   };
 
   // Function to highlight and format slash chord notation
@@ -67,7 +74,12 @@ const ChordGenerator = () => {
               <div className="player-controls">
                 <ProgressionPlayer 
                   progression={progression}
-                  maintainPlayback={true} 
+                  maintainPlayback={true}
+                  onTempoChange={handleTempoChange}
+                />
+                <MidiExportButton 
+                  progression={progression}
+                  tempo={currentTempo}
                 />
               </div>
             </>

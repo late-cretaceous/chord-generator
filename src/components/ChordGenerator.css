@@ -386,3 +386,13 @@ button:hover {
     color: #666;
     font-style: italic;
   }
+
+  .export-button {
+    background-color: #4CAF50;
+    margin-top: 12px;
+    transition: background-color 0.2s;
+}
+
+.export-button:hover {
+    background-color: #45a049;
+}
