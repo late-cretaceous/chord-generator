@@ -27,7 +27,8 @@
 │   │   ├── audio.js
 │   │   ├── core.js
 │   │   ├── inversions.js
-│   │   └── logic.js
+│   │   ├── logic.js
+│   │   └── voicings.js
 │   ├── App.css
 │   ├── App.jsx
 │   ├── index.css
