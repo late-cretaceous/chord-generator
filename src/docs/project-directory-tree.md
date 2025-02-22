@@ -7,10 +7,13 @@
 │   ├── components
 │   │   ├── ChordGenerator.css
 │   │   ├── ChordGenerator.jsx
+│   │   ├── MidiExportButton.jsx
 │   │   ├── ProgressionPlayer.jsx
 │   │   └── SynthControls.jsx
 │   ├── docs
-│   │   └── project-directory-tree.md
+│   │   ├── project-directory-tree.md
+│   │   ├── README.md
+│   │   └── TODO.md
 │   ├── lib
 │   │   ├── modes
 │   │   │   ├── index.js
@@ -28,6 +31,7 @@
 │   │   ├── core.js
 │   │   ├── inversions.js
 │   │   ├── logic.js
+│   │   ├── midi-export.js
 │   │   └── voicings.js
 │   ├── App.css
 │   ├── App.jsx
@@ -37,5 +41,4 @@
 ├── index.html
 ├── package-lock.json
 ├── package.json
-├── README.md
 └── vite.config.js
