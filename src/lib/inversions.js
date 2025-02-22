@@ -48,22 +48,101 @@ export function getChordInversions(rootNote, chordType) {
 }
 
 /**
+ * Calculates voice leading distance between two sets of notes
+ * @param {Array} previousNotes - Notes of the previous chord
+ * @param {Array} currentNotes - Notes of the current chord
+ * @returns {number} Total voice leading distance (lower is better)
+ */
+function calculateVoiceLeadingDistance(previousNotes, currentNotes) {
+    if (!previousNotes || !currentNotes || !previousNotes.length || !currentNotes.length) {
+        return Infinity;
+    }
+
+    // We'll assign different weights to different inversions to avoid ties
+    // Root position (0) has a slight penalty, first inversion has advantage,
+    // second inversion has more penalty, and third inversion has most penalty
+    const inversionOffset = {
+        0: 0.05,  // Slight penalty for root position (good for cadences)
+        1: -0.05, // Slight advantage for first inversion (good for voice leading)
+        2: 0.1,   // Moderate penalty for second inversion (less common)
+        3: 0.2    // High penalty for third inversion (rare, unstable)
+    };
+    
+    // Create a map for easy lookup of note indices
+    const noteIndices = {};
+    NOTES.forEach((note, index) => {
+        noteIndices[note] = index;
+    });
+    
+    // For each previous note, find the closest current note
+    let totalDistance = 0;
+    previousNotes.forEach(prevNote => {
+        if (!noteIndices.hasOwnProperty(prevNote)) return;
+        
+        const prevIndex = noteIndices[prevNote];
+        
+        // Find the closest note in current chord
+        let minDistance = Infinity;
+        currentNotes.forEach(currNote => {
+            if (!noteIndices.hasOwnProperty(currNote)) return;
+            
+            const currIndex = noteIndices[currNote];
+            
+            // Calculate circular distance (consider both directions around the octave)
+            let distance = Math.abs(currIndex - prevIndex);
+            distance = Math.min(distance, 12 - distance);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+            }
+        });
+        
+        totalDistance += minDistance;
+    });
+    
+    return totalDistance;
+}
+
+/**
  * Selects the best inversion based on voice leading from previous chord
  * @param {Array} currentInversions - All possible inversions of the current chord
  * @param {Array} previousNotes - Notes of the previous chord
+ * @param {number} inversionNumber - The inversion number (for weighted selection)
  * @returns {Object} The best inversion based on voice leading
  */
-export function selectBestInversion(currentInversions, previousNotes) {
+export function selectBestInversion(currentInversions, previousNotes, inversionNumber = null) {
     if (!previousNotes || !previousNotes.length || !currentInversions.length) {
         return currentInversions[0]; // Return root position if no previous chord
     }
     
-    // Always prefer first inversion for testing
-    if (currentInversions.length > 1) {
-        return currentInversions[1];
+    // Calculate voice leading distances for each inversion
+    const inversionsWithDistances = currentInversions.map(inversion => {
+        // Calculate base voice leading distance
+        let distance = calculateVoiceLeadingDistance(previousNotes, inversion.notes);
+        
+        // Apply slight biases to avoid ties
+        // First inversion has advantage, second and third have penalties
+        distance += (inversion.inversion === 1) ? -0.1 : 
+                   (inversion.inversion === 2) ? 0.1 : 
+                   (inversion.inversion === 3) ? 0.2 : 0;
+                   
+        return {
+            ...inversion,
+            voiceLeadingDistance: distance
+        };
+    });
+    
+    // Sort by voice leading distance (ascending - lower is better)
+    inversionsWithDistances.sort((a, b) => a.voiceLeadingDistance - b.voiceLeadingDistance);
+    
+    // If we specified a particular inversion, use it if available
+    if (inversionNumber !== null && inversionNumber < currentInversions.length) {
+        const requestedInversion = currentInversions.find(inv => inv.inversion === inversionNumber);
+        if (requestedInversion) return requestedInversion;
     }
     
-    return currentInversions[0];
+    // Return the inversion with the best voice leading
+    return inversionsWithDistances[0];
 }
 
 /**
@@ -112,11 +191,11 @@ export function getInversionSymbol(rootNote, quality, inversion, notes) {
  * @returns {boolean} True if an inversion should be considered
  */
 export function shouldUseInversion(position, progressionLength) {
-    if (position === 0) return Math.random() < 0.3; // 30% chance for first chord
-    if (position === progressionLength - 1) return Math.random() < 0.5; // 50% chance for last chord
+    if (position === 0) return Math.random() < 0.15; // 15% chance for first chord - typically in root position
+    if (position === progressionLength - 1) return Math.random() < 0.25; // 25% chance for last chord - cadential chords often in root
     
-    // Likely to use inversions in the middle of progressions
-    return Math.random() < 0.85; // 85% chance for middle chords
+    // More balanced probability for middle chords
+    return Math.random() < 0.55; // 55% chance for middle chords - common but not overwhelming
 }
 
 /**
@@ -130,9 +209,19 @@ export function applyProgressionInversions(progression) {
     const result = [];
     let previousNotes = null;
     
+    // Add a slight randomization to inversion selection
+    // to avoid predictable patterns
+    const getRandomInversion = () => {
+        const rand = Math.random();
+        // Distribution: 40% first inversion, 10% second inversion, 50% best voice leading
+        if (rand < 0.4) return 1; // First inversion
+        if (rand < 0.5) return 2; // Second inversion
+        return null; // Let voice leading algorithm decide
+    };
+    
     progression.forEach((chordSymbol, index) => {
         // Parse the chord
-        const rootPattern = /^[A-G][#]?/;
+        const rootPattern = /^([A-G][#]?)([a-z0-9]*)$/;
         const rootMatch = chordSymbol.match(rootPattern);
         
         if (!rootMatch) {
@@ -177,8 +266,11 @@ export function applyProgressionInversions(progression) {
         // Get all possible inversions
         const inversions = getChordInversions(rootNote, quality);
         
+        // Sometimes force specific inversions for variety
+        const forcedInversion = getRandomInversion();
+        
         // Select best inversion
-        const bestInversion = selectBestInversion(inversions, previousNotes);
+        const bestInversion = selectBestInversion(inversions, previousNotes, forcedInversion);
         
         // Update previous notes for next iteration
         previousNotes = bestInversion.notes;
