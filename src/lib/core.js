@@ -1,7 +1,7 @@
 // Basic music theory constants and utilities
-const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-const MODE_PATTERNS = {
+export const MODE_PATTERNS = {
     ionian: {
         intervals: [0, 2, 4, 5, 7, 9, 11],
         chords: ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished']
@@ -32,8 +32,7 @@ const MODE_PATTERNS = {
     }
 };
 
-// Intervals (in semitones) for different chord types
-const CHORD_INTERVALS = {
+export const CHORD_INTERVALS = {
     // Basic triads
     major: [0, 4, 7],              // Root, Major Third, Perfect Fifth
     minor: [0, 3, 7],              // Root, Minor Third, Perfect Fifth
@@ -94,7 +93,7 @@ const CHORD_INTERVALS = {
  * @param {string} modeName - Name of the mode (e.g., 'ionian', 'dorian')
  * @returns {Object} Mode pattern containing intervals and chord qualities
  */
-function getModePattern(modeName) {
+export function getModePattern(modeName) {
     const mode = MODE_PATTERNS[modeName.toLowerCase()];
     if (!mode) throw new Error(`Unknown mode: ${modeName}`);
     return mode;
@@ -106,7 +105,7 @@ function getModePattern(modeName) {
  * @param {number[]} intervals - Array of intervals in semitones
  * @returns {string[]} Array of note names in the scale
  */
-function generateScaleNotes(root, intervals) {
+export function generateScaleNotes(root, intervals) {
     const rootIndex = NOTES.indexOf(root);
     if (rootIndex === -1) throw new Error(`Invalid root note: ${root}`);
     
@@ -122,7 +121,7 @@ function generateScaleNotes(root, intervals) {
  * @param {string} quality - Chord quality ('major', 'minor', etc.)
  * @returns {string} Roman numeral notation
  */
-function getRomanNumeral(degree, quality) {
+export function getRomanNumeral(degree, quality) {
     const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
     const numeral = numerals[degree];
     return quality === 'major' ? numeral : numeral.toLowerCase();
@@ -133,7 +132,7 @@ function getRomanNumeral(degree, quality) {
  * @param {string} quality - Chord quality (e.g., 'major', 'minor')
  * @returns {string} Symbol to append to root note
  */
-function getQualitySymbol(quality) {
+export function getQualitySymbol(quality) {
     const symbols = {
         'major': '',
         'minor': 'm',
@@ -154,7 +153,7 @@ function getQualitySymbol(quality) {
  * @param {string} chordType - Type of chord from CHORD_INTERVALS
  * @returns {string[]} Array of notes in the chord
  */
-function getChordNotes(rootNote, chordType) {
+export function getChordNotes(rootNote, chordType) {
     const rootIndex = NOTES.indexOf(rootNote);
     if (rootIndex === -1) throw new Error('Invalid root note');
     
@@ -168,12 +167,56 @@ function getChordNotes(rootNote, chordType) {
 }
 
 /**
+ * Parses a chord symbol into its components
+ * @param {string} chordSymbol - Chord symbol (e.g., "Cm", "F", "G7")
+ * @returns {{root: string, quality: string, suffix: string} | null}
+ */
+export function parseChordSymbol(chordSymbol) {
+    if (!chordSymbol) return null;
+
+    const match = chordSymbol.match(/^([A-G][#]?)([a-z0-9]*$)/);
+    if (!match) return null;
+
+    const [, root, suffix] = match;
+    
+    const qualityMap = {
+        '': 'major',
+        'm': 'minor',
+        'min': 'minor',
+        'dim': 'diminished',
+        'aug': 'augmented',
+        '7': 'dominant7',
+        'maj7': 'major7',
+        'm7': 'minor7',
+        'dim7': 'diminished7'
+    };
+
+    return {
+        root,
+        quality: qualityMap[suffix] || 'major',
+        suffix: suffix || ''
+    };
+}
+
+/**
+ * Gets notes for a chord from its symbol
+ * @param {string} chordSymbol - Chord symbol (e.g., "Cm", "F", "G7")
+ * @returns {string[]} Array of notes in the chord
+ */
+export function getNotesFromChordSymbol(chordSymbol) {
+    const parsed = parseChordSymbol(chordSymbol);
+    if (!parsed) return [chordSymbol];
+    
+    return getChordNotes(parsed.root, parsed.quality);
+}
+
+/**
  * Gets all notes and chords for a given root note and mode
  * @param {string} root - Root note (e.g., 'C', 'F#')
  * @param {string} modeName - Name of the mode (e.g., 'ionian', 'dorian')
  * @returns {Object} Complete mode information including scale and chords
  */
-function getModeChords(root, modeName) {
+export function getModeChords(root, modeName) {
     const mode = getModePattern(modeName);
     const scaleNotes = generateScaleNotes(root, mode.intervals);
     
@@ -192,15 +235,3 @@ function getModeChords(root, modeName) {
         chords
     };
 }
-
-export {
-    NOTES,
-    CHORD_INTERVALS,
-    MODE_PATTERNS,
-    getChordNotes,
-    getModePattern,
-    generateScaleNotes,
-    getRomanNumeral,
-    getQualitySymbol,
-    getModeChords
-};

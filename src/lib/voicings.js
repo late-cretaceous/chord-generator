@@ -1,11 +1,18 @@
 // src/lib/voicings.js
 import { NOTES, CHORD_INTERVALS } from './core';
 
+const VOICING_TYPES = {
+    CLOSE: 'close',      // Notes as close as possible
+    OPEN: 'open',        // Notes spread out
+    DROP_2: 'drop2',     // Second highest note dropped an octave
+    DROP_3: 'drop3'      // Third highest note dropped an octave
+};
+
 /**
- * Gets the frequency for a note at a specific octave
- * @param {string} note - The note name (e.g., 'C', 'F#')
- * @param {number} octave - The octave number
- * @returns {number} The frequency in Hz
+ * Gets frequency for a note at a specific octave
+ * @param {string} note - Note name (e.g., 'C', 'F#')
+ * @param {number} octave - Octave number
+ * @returns {number} Frequency in Hz
  */
 export function noteToFrequency(note, octave) {
     const noteIndex = NOTES.indexOf(note);
@@ -21,23 +28,18 @@ export function noteToFrequency(note, octave) {
  * @param {string} chordSymbol - The chord symbol (e.g., 'Cm', 'G/B')
  * @returns {Object} Parsed chord information
  */
-export function parseChord(chordSymbol) {
+function parseChordSymbol(chordSymbol) {
     // Check for slash chord notation (inversions)
-    const slashParts = chordSymbol.split('/');
-    const mainChord = slashParts[0];
-    const bassNote = slashParts[1]; // Will be undefined if no slash
+    const [mainChord, bassNote] = chordSymbol.split('/');
     
     // Parse main chord symbol into root note and quality
-    const rootPattern = /^[A-G][#]?/;
-    const rootMatch = mainChord.match(rootPattern);
+    const match = mainChord.match(/^([A-G][#]?)([a-z0-9]*$)/);
+    if (!match) return null;
     
-    if (!rootMatch) return null;
-    
-    const rootNote = rootMatch[0];
-    let chordType = mainChord.slice(rootNote.length);
+    const [, rootNote, qualitySuffix] = match;
     
     // Map chord symbols to quality
-    const chordTypeMap = {
+    const qualityMap = {
         '': 'major',
         'm': 'minor',
         'min': 'minor',
@@ -51,16 +53,16 @@ export function parseChord(chordSymbol) {
     
     return {
         root: rootNote,
-        type: chordTypeMap[chordType] || 'major',
-        bassNote: bassNote // This will be undefined for non-inverted chords
+        type: qualityMap[qualitySuffix] || 'major',
+        bassNote: bassNote
     };
 }
 
 /**
- * Gets the notes for a chord
- * @param {string} rootNote - The root note
- * @param {string} chordType - The chord type
- * @returns {string[]} Array of note names
+ * Gets notes for a chord based on root and type
+ * @param {string} rootNote - Root note
+ * @param {string} chordType - Type of chord
+ * @returns {string[]} Array of notes in the chord
  */
 export function getChordNotes(rootNote, chordType) {
     const rootIndex = NOTES.indexOf(rootNote);
@@ -76,68 +78,140 @@ export function getChordNotes(rootNote, chordType) {
 }
 
 /**
- * Creates a voicing for a chord, determining notes and octaves to play
- * @param {string} chord - The chord symbol
- * @param {boolean} playFullChord - Whether to play the full chord or just the bass note
- * @returns {Array} Array of note objects with note name, octave, and frequency
+ * Creates a close position voicing
+ * @param {string[]} notes - Notes to voice
+ * @param {number} baseOctave - Starting octave
+ * @returns {Array<{note: string, octave: number}>} Voiced notes
+ */
+function createCloseVoicing(notes, baseOctave) {
+    let currentOctave = baseOctave;
+    let previousIndex = NOTES.indexOf(notes[0]);
+    
+    return notes.map((note, i) => {
+        if (i === 0) return { note, octave: baseOctave };
+        
+        const currentIndex = NOTES.indexOf(note);
+        if (currentIndex < previousIndex) currentOctave++;
+        
+        previousIndex = currentIndex;
+        return { note, octave: currentOctave };
+    });
+}
+
+/**
+ * Creates an open position voicing
+ * @param {string[]} notes - Notes to voice
+ * @param {number} baseOctave - Starting octave
+ * @returns {Array<{note: string, octave: number}>} Voiced notes
+ */
+function createOpenVoicing(notes, baseOctave) {
+    return notes.map((note, i) => ({
+        note,
+        octave: baseOctave + Math.floor(i / 2)
+    }));
+}
+
+/**
+ * Creates a drop-2 voicing
+ * @param {string[]} notes - Notes to voice
+ * @param {number} baseOctave - Starting octave
+ * @returns {Array<{note: string, octave: number}>} Voiced notes
+ */
+function createDrop2Voicing(notes, baseOctave) {
+    if (notes.length < 4) return createCloseVoicing(notes, baseOctave);
+    
+    const voiced = createCloseVoicing(notes, baseOctave + 1);
+    voiced[voiced.length - 2].octave = baseOctave;
+    return voiced;
+}
+
+/**
+ * Creates a drop-3 voicing
+ * @param {string[]} notes - Notes to voice
+ * @param {number} baseOctave - Starting octave
+ * @returns {Array<{note: string, octave: number}>} Voiced notes
+ */
+function createDrop3Voicing(notes, baseOctave) {
+    if (notes.length < 4) return createCloseVoicing(notes, baseOctave);
+    
+    const voiced = createCloseVoicing(notes, baseOctave + 1);
+    voiced[voiced.length - 3].octave = baseOctave;
+    return voiced;
+}
+
+/**
+ * Creates a complete voicing with frequencies
+ * @param {string[]} notes - Notes to voice
+ * @param {Object} options - Voicing options
+ * @returns {Array<{note: string, octave: number, frequency: number}>} Complete voicing
+ */
+export function createVoicing(notes, options = {}) {
+    const {
+        type = VOICING_TYPES.CLOSE,
+        baseOctave = 3,
+        bassNote = notes[0]
+    } = options;
+
+    // Reorder notes to put bass note first if specified
+    const voicingNotes = bassNote !== notes[0] 
+        ? [bassNote, ...notes.filter(n => n !== bassNote)]
+        : [...notes];
+
+    // Create voicing based on type
+    let voiced;
+    switch (type) {
+        case VOICING_TYPES.OPEN:
+            voiced = createOpenVoicing(voicingNotes, baseOctave);
+            break;
+        case VOICING_TYPES.DROP_2:
+            voiced = createDrop2Voicing(voicingNotes, baseOctave);
+            break;
+        case VOICING_TYPES.DROP_3:
+            voiced = createDrop3Voicing(voicingNotes, baseOctave);
+            break;
+        default:
+            voiced = createCloseVoicing(voicingNotes, baseOctave);
+    }
+
+    // Add frequencies
+    return voiced.map(({ note, octave }) => ({
+        note,
+        octave,
+        frequency: noteToFrequency(note, octave)
+    }));
+}
+
+/**
+ * Creates a chord voicing (backwards compatibility function)
+ * @param {string} chord - Chord symbol
+ * @param {boolean} playFullChord - Whether to play full chord or just root
+ * @returns {Array<{note: string, octave: number, frequency: number}>} Voiced chord
  */
 export function createChordVoicing(chord, playFullChord = true) {
-    const parsedChord = parseChord(chord);
-    if (!parsedChord) return [];
-    
-    const { root, type, bassNote } = parsedChord;
-    const chordNotes = getChordNotes(root, type);
-    
+    const parsed = parseChordSymbol(chord);
+    if (!parsed) return [];
+
+    const { root, type, bassNote } = parsed;
+
     if (!playFullChord) {
         // For non-full chord mode, play the bass note if it's an inversion, otherwise the root
         const noteToPlay = bassNote || root;
-        const frequency = noteToFrequency(noteToPlay, 4);
-        return [{ note: noteToPlay, octave: 4, frequency }].filter(n => n.frequency);
+        return [{
+            note: noteToPlay,
+            octave: 4,
+            frequency: noteToFrequency(noteToPlay, 4)
+        }];
     }
-    
-    // Play full chord with appropriate voicing
-    const baseOctave = 3;
-    const rootIndex = NOTES.indexOf(root);
-    const voicing = [];
-    
-    // If there's a specified bass note (slash chord), handle it differently
-    if (bassNote) {
-        // Add the bass note first
-        voicing.push({
-            note: bassNote,
-            octave: baseOctave,
-            frequency: noteToFrequency(bassNote, baseOctave)
-        });
-        
-        // Then add the rest of the chord notes, excluding any that match the bass
-        chordNotes.forEach((note) => {
-            if (note !== bassNote) {
-                const noteOctave = baseOctave + 1; // Play upper notes an octave higher
-                voicing.push({
-                    note,
-                    octave: noteOctave,
-                    frequency: noteToFrequency(note, noteOctave)
-                });
-            }
-        });
-    } else {
-        // Regular (non-inverted) chord handling
-        chordNotes.forEach((note, index) => {
-            const noteIndex = NOTES.indexOf(note);
-            let noteOctave = baseOctave;
-            
-            // Adjust octave to keep notes close together
-            if (noteIndex < rootIndex && index > 0) {
-                noteOctave += 1;
-            }
-            
-            voicing.push({
-                note,
-                octave: noteOctave,
-                frequency: noteToFrequency(note, noteOctave)
-            });
-        });
-    }
-    
-    return voicing.filter(n => n.frequency); // Filter out any notes with invalid frequencies
+
+    // Get the chord notes
+    const chordNotes = getChordNotes(root, type);
+
+    // Create the voicing using our new system
+    return createVoicing(chordNotes, {
+        type: VOICING_TYPES.CLOSE,
+        baseOctave: 3,
+        bassNote: bassNote || root
+    });
 }
+
+export { VOICING_TYPES };
