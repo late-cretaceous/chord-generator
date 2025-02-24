@@ -2,23 +2,16 @@ import { NOTES, pitchToMidi, midiToPitch, parseChordSymbol } from './core';
 
 export function getInversions(chord) {
     if (!chord.notes || !chord.notes.length) return [];
-    const pitchClasses = chord.notes.map(note => note.replace(/[0-9]/, ''));
-
     const inversions = [];
-    for (let i = 0; i < pitchClasses.length; i++) {
-        const bassPitchClass = pitchClasses[i];
-        const reorderedPitchClasses = [...pitchClasses.slice(i), ...pitchClasses.slice(0, i)];
-        const bassMidi = pitchToMidi(bassPitchClass, 2); // Start at octave 2
-        const notes = reorderedPitchClasses.map((pc, idx) => {
-            const midiOffset = idx * 4; // Stack upward, approx. major third intervals
-            return midiToPitch(bassMidi + midiOffset);
-        });
+    for (let i = 0; i < chord.notes.length; i++) {
+        const reorderedNotes = [...chord.notes.slice(i), ...chord.notes.slice(0, i)];
         inversions.push({
             inversion: i,
-            bassNote: notes[0],
-            notes
+            bassNote: reorderedNotes[0],
+            notes: reorderedNotes
         });
     }
+    console.log('Inversions for', chord.notes, ':', inversions);
     return inversions;
 }
 
@@ -30,25 +23,26 @@ function calculateVoiceLeadingDistance(previousChord, currentChord) {
     let totalDistance = 0;
     const minVoices = Math.min(previousChord.length, currentChord.length);
 
+    // Weight bass (index 0) more heavily
     for (let i = 0; i < minVoices; i++) {
         const prevMidi = pitchToMidi(previousChord[i].replace(/[0-9]/, ''), parseInt(previousChord[i].slice(-1)));
         const currMidi = pitchToMidi(currentChord[i].replace(/[0-9]/, ''), parseInt(currentChord[i].slice(-1)));
         const distance = Math.abs(currMidi - prevMidi);
-        totalDistance += distance;
+        totalDistance += i === 0 ? distance * 2 : distance; // Double bass weight
     }
 
-    return minVoices > 0 ? totalDistance / minVoices : Infinity;
+    return totalDistance; // Sum, not average
 }
 
 function selectBestInversion(inversions, previousChordNotes) {
     if (!inversions.length) return null;
     if (!previousChordNotes || !previousChordNotes.length) return inversions[0];
 
-    const weightedInversions = inversions.map(inv => ({
-        ...inv,
-        distance: calculateVoiceLeadingDistance(previousChordNotes, inv.notes) + 
-                 getInversionBias(inv.inversion)
-    }));
+    const weightedInversions = inversions.map(inv => {
+        const distance = calculateVoiceLeadingDistance(previousChordNotes, inv.notes) + getInversionBias(inv.inversion);
+        console.log('Inversion', inv.notes, 'Distance:', distance);
+        return { ...inv, distance };
+    });
 
     return weightedInversions.sort((a, b) => a.distance - b.distance)[0];
 }
@@ -81,17 +75,17 @@ function assessInversionBenefit(currentChord, previousChord) {
 
     console.log(`Root Distance: ${rootDistance}, Best Distance: ${bestDistance}, Improvement: ${rootDistance - bestDistance}`);
 
-    const improvementThreshold = 0.5;
+    const improvementThreshold = 1; // Adjusted for total distance
     const shouldInvert = (rootDistance - bestDistance) > improvementThreshold;
 
     return { shouldInvert, bestInversion };
 }
 
-/**
- * Applies inversions to a pitch-specific progression
- * @param {Array<{root: string, quality: string, bass: string, notes: string[]}>} progression
- * @returns {Array<{root: string, quality: string, bass: string, notes: string[]}>}
- */
+export function formatInversionSymbol(root, quality, bassNote) {
+    if (!bassNote || bassNote.startsWith(root)) return root + quality;
+    return `${root}${quality}/${bassNote}`;
+}
+
 export function applyProgressionInversions(progression) {
     if (!progression || progression.length === 0) return progression;
 

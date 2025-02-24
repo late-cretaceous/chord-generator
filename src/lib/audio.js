@@ -1,6 +1,18 @@
-// src/lib/audio.js
-import { createChordVoicing } from './voicings';
 import { SynthEngine } from './synth/SynthEngine';
+import { NOTES } from './core';
+
+function noteToFrequency(noteWithOctave) {
+    const match = noteWithOctave.match(/([A-G][#]?)([0-9])/);
+    if (!match) return null;
+    const [_, note, octave] = match;
+    const noteIndex = NOTES.indexOf(note);
+    if (noteIndex === -1) return null;
+    const a4 = 440;
+    // MIDI: C-1 = 0, C0 = 12, C2 = 36, A4 = 69
+    const noteNumber = noteIndex + (parseInt(octave) + 1) * 12; // C2 = 0 + 3*12 = 36
+    const a4Midi = 69; // A4 = 440 Hz
+    return a4 * Math.pow(2, (noteNumber - a4Midi) / 12);
+}
 
 class AudioEngine {
     constructor() {
@@ -18,15 +30,17 @@ class AudioEngine {
         }
     }
 
-    playChord(chord, playFullChord = false, duration = 0.8) {
+    playChord(pitches, playFullChord = false, duration = 0.8) {
         if (!this.audioContext) this.init();
-        
-        // Use the voicing module to get the notes to play
-        const voicing = createChordVoicing(chord, playFullChord);
-        
-        // Play each note in the voicing
-        voicing.forEach(({ frequency }) => {
-            if (frequency) this.synthEngine.playNote(frequency);
+
+        const notesToPlay = playFullChord ? pitches : [pitches[0]];
+        console.log('Playing chord:', notesToPlay); // Debug
+        notesToPlay.forEach(pitch => {
+            const frequency = noteToFrequency(pitch);
+            if (frequency) {
+                console.log(`Note: ${pitch}, Frequency: ${frequency}`); // Debug
+                this.synthEngine.playNote(frequency);
+            }
         });
     }
 
@@ -43,7 +57,6 @@ class AudioEngine {
         this.currentChordIndex = 0;
         const intervalTime = (60 / tempo) * 2 * 1000;
 
-        // Play first chord immediately
         if (chords.length > 0) {
             this.playChord(chords[0], playFullChords);
         }
@@ -54,7 +67,6 @@ class AudioEngine {
                 return;
             }
             
-            // Stop previous chord
             this.synthEngine.stopAllNotes();
             
             this.currentChordIndex = (this.currentChordIndex + 1) % chords.length;
