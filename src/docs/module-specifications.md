@@ -67,21 +67,36 @@
 \
 ---\
 \
-### voicing.js\
-\
-**Purpose:** Optimizes a chord progression by applying inversions based on voice-leading principles, adjusting pitch-specific chord voicings.\
-\
-**Inputs:** `progression`: Array of chord objects\'97`\{ root: string, quality: string, bass: string, notes: string[] \}`.\
-\
-**Outputs:** Array of chord objects with updated `bass` and `notes`\'97e.g., `\{ root: "G", quality: "", bass: "D2", notes: ["D2", "G2", "B2"] \}`.\
-\
-**Behavior/Algorithm:** Reorders each chord\'92s `notes` to create inversion options within the same octave range. Selects the best inversion per chord based on voice-leading distance from the previous chord, favoring bass movement. Preserves pitch-specific notation (e.g., "D2")\'97no playback or frequency conversion.\
-\
-**Dependencies:** `core.js`: `NOTES`, `pitchToMidi`, `midiToPitch`, `parseChordSymbol`\'97for pitch manipulation.\
-\
-**Constraints/Assumptions:** Assumes input chords have valid `notes` arrays from `logic.js`. Uses a fixed base octave derived from input (e.g., 2).\
-\
-**Non-Responsibilities/Limitations:** Does not generate initial progressions (handled by `logic.js`). Does not play audio or calculate frequencies (handled by `audio.js`).\
+### voicing.js
+
+**Purpose:** Coordinates the application of inversions to chord progressions based on voice-leading principles, acting as the primary interface for optimizing chord voicings and managing inversions across a progression.
+
+**Inputs:**
+* `progression`: Array of chord objects—`{ root: string, quality: string, bass: string, notes: string[] }`—from `logic.js`.
+* Various internal inputs for helper functions, including chord objects, inversion arrays, note arrays, and position indices.
+
+**Outputs:**
+* `applyProgressionInversions`: Array of chord objects with optimized inversions.
+* `getInversions`: Array of possible inversions for a chord.
+* `formatInversionSymbol`: Formatted chord symbol string with inversion notation.
+
+**Behavior/Algorithm:** Coordinates the inversion optimization process by generating all possible inversions for each chord, evaluating them using voice-leading principles (delegated to specialized modules), and selecting the best option based on musical context and position within the progression. Controls when inversions should be applied based on improvement thresholds. Acts as the orchestrator between chord progression generation and detailed voice-leading analysis.
+
+**Dependencies:**
+* `./core`: For pitch manipulation functions and music theory constants.
+* `./melodic-state`: For managing melodic contour state across the progression.
+* `./voice-leading-analysis`: For detailed scoring of voice leading quality.
+
+**Constraints/Assumptions:**
+* Assumes chord objects have valid `notes` arrays.
+* Expects chords within Western music theory conventions.
+* Limited to pitch-specific voicings (e.g., "C2") rather than abstract chord symbols.
+
+**Non-Responsibilities/Limitations:**
+* Does not generate the initial progression (handled by `logic.js`).
+* Does not perform the actual voice-leading analysis (delegated to `voice-leading-analysis.js`).
+* Does not track melodic state directly (delegated to `melodic-state.js`).
+* Not responsible for audio playback or rendering chord symbols for display.
 \
 ---\
 \
@@ -212,3 +227,73 @@
 * Does not convert Roman numerals to actual chord symbols or notes — delegated to core.js.
 * Does not apply voice leading or inversions — delegated to voicing.js.
 * Not responsible for final note generation or audio output.
+\
+---\
+\
+### voice-leading-analysis.js
+
+**Purpose:** Evaluates and scores chord transitions based on classical voice-leading principles, providing detailed analysis of harmonic connections, parallel intervals, and contextual second inversion treatment to inform optimal chord voicing selection.
+
+**Inputs:**
+* `previousChord`: Array of note strings (e.g., `["C2", "E2", "G2"]`)—from previous chord in progression.
+* `currentChord`: Array of note strings—for current chord being evaluated.
+* `progressionLength`: Number—total progression length for structural position awareness.
+* `chordIndex`: Number—position within the progression.
+* `prevChordObj`, `nextChordObj`: Chord objects—for contextual analysis.
+
+**Outputs:**
+* `calculateVoiceLeadingScore`: Number—score representing voice leading quality (lower is better).
+* `detectParallelPerfectIntervals`: Object—analysis of parallel fifths/octaves.
+* `analyzeSecondInversion`: Object—classification of second inversion context.
+* `getInversionBias`: Number—position-based score adjustment for inversions.
+
+**Behavior/Algorithm:** Implements sophisticated voice leading evaluation by examining consecutive chords for parallel perfect intervals (fifths and octaves), second inversion contexts (cadential, passing, pedal), bass motion smoothness, inner voice motion, and positional considerations. Applies penalties for voice leading errors and rewards for traditional voice leading practices. Uses weighted scoring to balance multiple factors, with special handling for outer voices and cadential patterns.
+
+**Dependencies:**
+* `./core`: For pitch manipulation functions and music theory constants.
+* `./melodic-state`: For melodic contour tracking and scoring.
+
+**Constraints/Assumptions:**
+* Assumes Western classical voice leading principles.
+* Works with pitch-specific notation (e.g., "C2").
+* Designed for small-scale chord progressions (not large-scale forms).
+
+**Non-Responsibilities/Limitations:**
+* Does not apply corrections to voice leading—only analyzes and scores.
+* Does not manage progression construction or inversions directly.
+* Not responsible for key detection or modulation analysis.
+* No explicit handling of non-diatonic harmony or extended jazz voicings.
+* Does not enforce voice ranges or perfect voice distribution.
+\
+---\
+\
+### melodic-state.js
+
+**Purpose:** Maintains and analyzes melodic contour state across a chord progression, tracking directional movement, leaps and resolutions, and phrase position to guide voice leading decisions with melodic awareness.
+
+**Inputs:**
+* `melodyMidi`: Number—MIDI pitch value of current melody note.
+* `progressionLength`: Number—total progression length for structural position awareness.
+
+**Outputs:**
+* `updateMelodyState`: Object—score adjustments based on melodic analysis.
+* `getMelodicState`: Object—current state of melodic tracking.
+* `resetMelodicState`: No return value—resets internal state.
+
+**Behavior/Algorithm:** Implements a stateful tracking system for melodic movement that analyzes consecutive melody notes (typically the highest voice) for patterns of direction, leap behavior, and structural position. Evaluates the quality of melodic motion based on traditional counterpoint principles—including proper resolution of leaps, avoidance of excessive movement in one direction, and appropriate cadential approaches. Provides scoring adjustments that can be incorporated into voice leading decisions.
+
+**Dependencies:**
+* None—self-contained with internal state management.
+
+**Constraints/Assumptions:**
+* Designed for Western melodic principles.
+* Works with MIDI pitch values rather than note names.
+* Optimized for typical 4-8 chord progressions.
+* Assumes highest voice is the primary melody for analysis.
+
+**Non-Responsibilities/Limitations:**
+* Does not directly select or modify chord voicings.
+* Not responsible for harmonic analysis or progression generation.
+* Does not analyze secondary melodic lines or counterpoint between voices.
+* Not designed for complex melodic analysis beyond progression-level considerations.
+* No awareness of scale degrees or key context (works with absolute pitches).

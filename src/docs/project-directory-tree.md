@@ -31,11 +31,13 @@
 │   │   ├── audio.js
 │   │   ├── chord-extensions.js
 │   │   ├── core.js
-│   │   ├── voicing.js
 │   │   ├── logic.js
+│   │   ├── melodic-state.js
 │   │   ├── midi-export.js
 │   │   ├── mode-enhancer.js
-│   │   └── progression-generator.js
+│   │   ├── progression-generator.js
+│   │   ├── voice-leading-analysis.js
+│   │   └── voicing.js
 │   ├── App.css
 │   ├── App.jsx
 │   ├── index.css
