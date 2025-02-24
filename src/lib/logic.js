@@ -1,5 +1,5 @@
 import { MODES } from './modes';
-import { calculateModalRoot, romanToChordSymbols, getNotesFromChordSymbol, parseChordSymbol } from './core'; // Added parseChordSymbol
+import { calculateModalRoot, romanToChordSymbols, getNotesFromChordSymbol, parseChordSymbol } from './core';
 import { applyProgressionInversions } from './inversions';
 
 function getTonicChord(mode) {
@@ -9,10 +9,7 @@ function getTonicChord(mode) {
 }
 
 function selectNextChord(currentChord, transitions, mode) {
-    if (!transitions || !currentChord) {
-        console.error('Invalid transitions or currentChord:', { transitions, currentChord });
-        return 'I';
-    }
+    if (!transitions || !currentChord) return 'I';
     const probabilities = transitions[currentChord];
     if (!probabilities) return getTonicChord(mode);
     const random = Math.random();
@@ -36,10 +33,6 @@ function generateChordProgression(length = 4, mode = MODES.ionian) {
     return progression;
 }
 
-/**
- * Main composition function with pitch-specific output
- * @returns {Array<{root: string, quality: string, bass: string, notes: string[]}>}
- */
 export function generateProgression(length = 4, key = 'C', modeName = 'ionian', useInversions = true, rootOctave = 2) {
     let mode = typeof modeName === 'string' ? MODES[modeName] || MODES.ionian : modeName;
     if (!mode) mode = MODES.ionian;
@@ -48,18 +41,20 @@ export function generateProgression(length = 4, key = 'C', modeName = 'ionian', 
     const romanNumerals = generateChordProgression(length, mode);
     const chordSymbols = romanToChordSymbols(romanNumerals, modalRoot, mode);
 
-    // Convert to pitch-specific chords
     const progression = chordSymbols.map(symbol => {
         const parsed = parseChordSymbol(symbol);
         if (!parsed) return { root: symbol, quality: '', bass: `${symbol}${rootOctave}`, notes: [symbol] };
         const notes = getNotesFromChordSymbol(symbol, rootOctave);
+        console.log(`Generated notes for ${symbol}:`, notes); // Debug
         return {
             root: parsed.root,
             quality: parsed.suffix,
-            bass: notes[0], // Root position initially
+            bass: notes[0],
             notes
         };
     });
 
-    return useInversions ? applyProgressionInversions(progression, { rootOctave }) : progression;
+    const result = useInversions ? applyProgressionInversions(progression) : progression;
+    console.log('Final progression:', result); // Debug
+    return result;
 }
