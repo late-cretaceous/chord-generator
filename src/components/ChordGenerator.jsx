@@ -11,6 +11,7 @@ const ChordGenerator = () => {
     const [selectedMode, setSelectedMode] = useState('ionian');
     const [selectedKey, setSelectedKey] = useState('C');
     const [useInversions, setUseInversions] = useState(true);
+    const [chordExtensionLevel, setChordExtensionLevel] = useState('none');
     const [currentTempo, setCurrentTempo] = useState(108);
 
     const handleLengthChange = (event) => {
@@ -23,10 +24,19 @@ const ChordGenerator = () => {
     const handleKeyChange = (event) => setSelectedKey(event.target.value);
 
     const handleInversionToggle = () => setUseInversions(!useInversions);
+    
+    const handleChordExtensionChange = (event) => setChordExtensionLevel(event.target.value);
 
     const handleGenerate = () => {
         const mode = MODES[selectedMode] || MODES.ionian;
-        const newProgression = generateProgression(length, selectedKey, mode, useInversions);
+        const newProgression = generateProgression(
+            length, 
+            selectedKey, 
+            mode, 
+            useInversions, 
+            2, // rootOctave
+            chordExtensionLevel
+        );
         console.log('Generated:', newProgression); // Debug
         setProgression(newProgression);
     };
@@ -70,7 +80,6 @@ const ChordGenerator = () => {
                         <p className="placeholder">Click generate to create a progression</p>
                     )}
                 </div>
-                {/* Controls unchanged */}
                 <div className="controls">
                     <div className="control-group">
                         <div className="key-control">
@@ -90,6 +99,7 @@ const ChordGenerator = () => {
                             </select>
                         </div>
                     </div>
+                    
                     <div className="length-control">
                         <label htmlFor="length-slider">Length: {length}</label>
                         <input
@@ -106,6 +116,29 @@ const ChordGenerator = () => {
                             <span>8</span>
                         </div>
                     </div>
+                    
+                    {/* New Chord Extensions Dropdown */}
+                    <div className="chord-extensions-control">
+                        <label htmlFor="extensions-select">Chord Complexity:</label>
+                        <select 
+                            id="extensions-select" 
+                            value={chordExtensionLevel} 
+                            onChange={handleChordExtensionChange}
+                            className="mode-select"
+                        >
+                            <option value="none">Basic Triads</option>
+                            <option value="sevenths">Seventh Chords</option>
+                            <option value="extended">Extended Chords</option>
+                            <option value="full">Full Jazz Harmony</option>
+                        </select>
+                        <div className="control-hint">
+                            {chordExtensionLevel === 'none' && 'Simple major and minor chords'}
+                            {chordExtensionLevel === 'sevenths' && 'Adds 7th chords like dominant7 and minor7'}
+                            {chordExtensionLevel === 'extended' && 'Includes 9th chords and more colors'}
+                            {chordExtensionLevel === 'full' && 'Rich jazz harmony with advanced extensions'}
+                        </div>
+                    </div>
+                    
                     <div className="chord-mode-toggle inversion-toggle">
                         <label className="toggle-container">
                             <input
@@ -118,6 +151,7 @@ const ChordGenerator = () => {
                         </label>
                         <span className="toggle-hint">Apply voice leading with slash chords</span>
                     </div>
+                    
                     <button onClick={handleGenerate}>Generate Progression</button>
                 </div>
             </div>

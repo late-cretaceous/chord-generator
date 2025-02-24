@@ -1,4 +1,5 @@
 // Basic music theory constants and utilities
+
 export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 export const MODE_PATTERNS = {
@@ -6,15 +7,36 @@ export const MODE_PATTERNS = {
     // [Other modes unchanged]
 };
 
+// Extended chord intervals with additional chord types
 export const CHORD_INTERVALS = {
+    // Base triads
     major: [0, 4, 7],
     minor: [0, 3, 7],
     diminished: [0, 3, 6],
-    // [Other chords unchanged]
+    augmented: [0, 4, 8],
+    sus2: [0, 2, 7],
+    sus4: [0, 5, 7],
+    
+    // Seventh chords
+    dominant7: [0, 4, 7, 10],
+    major7: [0, 4, 7, 11],
+    minor7: [0, 3, 7, 10],
+    diminished7: [0, 3, 6, 9],
+    halfDiminished7: [0, 3, 6, 10],
+    minorMajor7: [0, 3, 7, 11],
+    
+    // Add chords
+    add9: [0, 4, 7, 14],
+    madd9: [0, 3, 7, 14],
+    
+    // Extended chords
+    dominant9: [0, 4, 7, 10, 14],
+    major9: [0, 4, 7, 11, 14],
+    minor9: [0, 3, 7, 10, 14]
 };
 
 /**
- * NEW: Converts pitch class to MIDI note number with octave
+ * Converts pitch class to MIDI note number with octave
  */
 export function pitchToMidi(pitchClass, octave) {
     const pitchIndex = NOTES.indexOf(pitchClass);
@@ -23,7 +45,7 @@ export function pitchToMidi(pitchClass, octave) {
 }
 
 /**
- * NEW: Converts MIDI note number to pitch with octave
+ * Converts MIDI note number to pitch with octave
  */
 export function midiToPitch(midi) {
     const octave = Math.floor(midi / 12) - 1;
@@ -32,7 +54,7 @@ export function midiToPitch(midi) {
 }
 
 /**
- * UPDATED: Gets notes for a chord with specific pitches
+ * Gets notes for a chord with specific pitches
  */
 export function getChordNotes(root, chordType, rootOctave = 2) {
     const rootIndex = NOTES.indexOf(root);
@@ -45,7 +67,7 @@ export function getChordNotes(root, chordType, rootOctave = 2) {
 }
 
 /**
- * UPDATED: Gets notes for a chord from its symbol
+ * Gets notes for a chord from its symbol
  */
 export function getNotesFromChordSymbol(chordSymbol, rootOctave = 2) {
     const parsed = parseChordSymbol(chordSymbol);
@@ -54,20 +76,51 @@ export function getNotesFromChordSymbol(chordSymbol, rootOctave = 2) {
 }
 
 /**
- * Parses a chord symbol into its components
+ * UPDATED: Parses a chord symbol into its components with extended support
  */
 export function parseChordSymbol(chordSymbol) {
     if (!chordSymbol) return null;
-    const match = chordSymbol.match(/^([A-G][#]?)([a-z0-9]*)$/);
+    // Enhanced regex to support more complex chord symbols
+    const match = chordSymbol.match(/^([A-G][#]?)([a-zA-Z0-9#]*)$/);
     if (!match) return null;
     const [, root, suffix] = match;
+    
+    // Extended mapping from chord suffixes to internal chord types
     const qualityMap = {
+        // Triads
         '': 'major',
         'm': 'minor',
         'dim': 'diminished',
-        // [Other mappings unchanged]
+        'aug': 'augmented',
+        'sus2': 'sus2',
+        'sus4': 'sus4',
+        
+        // Seventh chords
+        '7': 'dominant7',
+        'maj7': 'major7',
+        'M7': 'major7',
+        'm7': 'minor7',
+        'dim7': 'diminished7',
+        'm7b5': 'halfDiminished7',
+        'ø7': 'halfDiminished7',
+        'mM7': 'minorMajor7',
+        
+        // Add chords
+        'add9': 'add9',
+        'madd9': 'madd9',
+        
+        // Extended chords
+        '9': 'dominant9',
+        'maj9': 'major9',
+        'M9': 'major9',
+        'm9': 'minor9'
     };
-    return { root, quality: qualityMap[suffix] || 'major', suffix: suffix || '' };
+    
+    return { 
+        root, 
+        quality: qualityMap[suffix] || 'major', 
+        suffix: suffix || '' 
+    };
 }
 
 /**
@@ -82,24 +135,53 @@ export function getScaleDegreeRoot(key, scaleDegree, mode) {
 }
 
 /**
- * Converts roman numeral progression to chord symbols (pitch-class based)
+ * ENHANCED: Converts roman numeral progression to chord symbols with extended support
  */
 export function romanToChordSymbols(progression, key = 'C', mode = MODE_PATTERNS.ionian) {
     if (!mode) mode = MODE_PATTERNS.ionian;
     const qualities = mode.chordQualities || mode.chords || {};
-    const romanNumeralMap = {};
-    for (let i = 0; i < progression.length; i++) {
-        const numeral = progression[i];
-        const degree = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
-            .indexOf(numeral.toLowerCase());
-        const quality = qualities[numeral] || (mode.chords && mode.chords[degree]) || 'major';
-        if (degree !== -1) {
-            romanNumeralMap[numeral] = { degree, quality };
-        }
-    }
+    
     return progression.map(numeral => {
-        if (!romanNumeralMap[numeral]) return 'C';
-        const { degree, quality } = romanNumeralMap[numeral];
+        // Parse for extensions like V7, ii7, etc.
+        const match = numeral.match(/^([ivIV]+)(\d*.*)/);
+        if (!match) return 'C';
+        
+        const [, baseNumeral, extension] = match;
+        
+        // Get the scale degree
+        const degree = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
+            .indexOf(baseNumeral.toLowerCase());
+        
+        if (degree === -1) return 'C';
+        
+        // Get base quality
+        let quality = qualities[baseNumeral] || 
+                    (mode.chords && mode.chords[degree]) || 
+                    'major';
+        
+        // Apply chord extension if present
+        if (extension) {
+            if (extension === '7') {
+                if (quality === 'major') {
+                    quality = 'dominant7';
+                } else if (quality === 'minor') {
+                    quality = 'minor7';
+                } else if (quality === 'diminished') {
+                    quality = 'diminished7';
+                }
+            } else if (extension === 'maj7' || extension === 'M7') {
+                quality = quality === 'minor' ? 'minorMajor7' : 'major7';
+            } else if (extension === '9') {
+                if (quality === 'major') {
+                    quality = 'dominant9';
+                } else if (quality === 'minor') {
+                    quality = 'minor9';
+                }
+            } else if (extension === 'maj9' || extension === 'M9') {
+                quality = 'major9';
+            }
+        }
+        
         const root = getScaleDegreeRoot(key, degree, mode);
         const suffix = getQualitySymbol(quality);
         return root + suffix;
@@ -137,16 +219,36 @@ export function calculateModalRoot(key, mode) {
 }
 
 /**
- * Converts a chord quality to its common symbol
+ * UPDATED: Converts a chord quality to its common symbol
  */
 export function getQualitySymbol(quality) {
     const normalizedQuality = quality.toLowerCase();
     const symbols = {
+        // Triads
         'major': '',
         'minor': 'm',
         'diminished': 'dim',
-        // [Other mappings unchanged]
+        'augmented': 'aug',
+        'sus2': 'sus2',
+        'sus4': 'sus4',
+        
+        // Seventh chords
+        'dominant7': '7',
+        'major7': 'maj7',
+        'minor7': 'm7',
+        'diminished7': 'dim7',
+        'halfdiminished7': 'm7b5',
+        'minormajor7': 'mM7',
+        
+        // Add chords
+        'add9': 'add9',
+        'madd9': 'madd9',
+        
+        // Extended chords
+        'dominant9': '9',
+        'major9': 'maj9',
+        'minor9': 'm9'
     };
+    
     return symbols[normalizedQuality] || normalizedQuality;
 }
-
