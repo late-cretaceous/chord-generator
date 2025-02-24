@@ -29,10 +29,13 @@
 │   │   │   ├── presets.js
 │   │   │   └── SynthEngine.js
 │   │   ├── audio.js
+│   │   ├── chord-extensions.js
 │   │   ├── core.js
 │   │   ├── inversions.js
 │   │   ├── logic.js
-│   │   └── midi-export.js
+│   │   ├── midi-export.js
+│   │   ├── mode-enhancer.js
+│   │   └── progression-generator.js
 │   ├── App.css
 │   ├── App.jsx
 │   ├── index.css

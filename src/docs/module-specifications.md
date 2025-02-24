@@ -31,29 +31,39 @@
 \
 ---\
 \
-### logic.js\
-\
-**Purpose:** Generates chord progressions based on musical parameters, producing pitch-specific chord objects with root positions and optional inversion hooks.\
-\
-**Inputs:**\
-*   `length` (Number, optional, default: 4)\'97progression length.\
-*   `key` (String, optional, default: "C")\'97tonic key.\
-*   `modeName` (String/Object, optional, default: "ionian")\'97musical mode.\
-*   `useInversions` (Boolean, optional, default: true)\'97toggle inversions.\
-*   `rootOctave` (Number, optional, default: 2)\'97base octave for pitches.\
-\
-**Outputs:** Array of chord objects: `\{ root: string, quality: string, bass: string, notes: string[] \}`\'97e.g., `[\{ root: "C", quality: "", bass: "C2", notes: ["C2", "E2", "G2"] \}, ...]`.\
-\
-**Behavior/Algorithm:** Generates roman numeral progressions using mode transition probabilities (from `MODES`). Converts to pitch-specific chords with octave-aware notes via `core.js`. Optionally applies inversions via `inversions.js`.\
-\
-**Dependencies:**\
-*   `core.js`: `calculateModalRoot`, `romanToChordSymbols`, `getNotesFromChordSymbol`, `parseChordSymbol`.\
-*   `inversions.js`: `applyProgressionInversions`.\
-*   `modes/*`: Mode definitions (`MODES`).\
-\
-**Constraints/Assumptions:** Assumes valid `key` and `modeName`\'97defaults to "C" and "ionian" if invalid. Relies on `inversions.js` for voicing adjustments.\
-\
-**Non-Responsibilities/Limitations:** Does not play audio or manage playback (handled by `audio.js`, `ProgressionPlayer.jsx`). Does not render UI or format chord symbols for display (handled by `ChordGenerator.jsx`).\
+### logic.js
+
+**Purpose:** Serves as the main coordinator module for the chord progression generation system, providing a unified API that connects specialized components to produce complete chord progressions with proper voicings.
+
+**Inputs:**
+* `length` (Number, optional, default: 4) — Desired progression length.
+* `key` (String, optional, default: "C") — Tonic key.
+* `modeName` (String/Object, optional, default: "ionian") — Musical mode.
+* `useInversions` (Boolean, optional, default: true) — Toggle inversions.
+* `rootOctave` (Number, optional, default: 2) — Base octave for pitches.
+* `useExtendedChords` (String, optional, default: "none") — Level of chord extensions to apply: "none", "sevenths", "extended", or "full".
+
+**Outputs:** Array of chord objects: `{ root: string, quality: string, bass: string, notes: string[] }` — e.g., `[{ root: "C", quality: "", bass: "C2", notes: ["C2", "E2", "G2"] }, ...]`.
+
+**Behavior/Algorithm:** Orchestrates the progression generation process by delegating specialized tasks to dedicated modules. First generates a basic Roman numeral progression, then selectively applies chord extensions based on the requested level, converts to pitch-specific chord symbols, and finally applies voice leading through inversions if requested. Maintains the public API while delegating implementation details.
+
+**Dependencies:**
+* `./modes`: Mode definitions (`MODES`).
+* `./core`: Core music theory utilities.
+* `./inversions`: Voice leading and inversion logic.
+* `./progression-generator`: Roman numeral progression generation.
+* `./chord-extensions`: Selective application of chord extensions.
+
+**Constraints/Assumptions:**
+* Assumes valid key and mode name inputs — defaults to C Ionian if invalid.
+* Works with all modes defined in the MODES object.
+* Produces Western music theory-based progressions with standard chord voicings.
+
+**Non-Responsibilities/Limitations:**
+* Does not play audio or manage playback (handled by `audio.js`).
+* Does not render UI or format chord symbols for display (handled by React components).
+* Not responsible for audio synthesis (delegated to `SynthEngine.js`).
+* Does not handle MIDI export directly (handled by `midi-export.js`).
 \
 ---\
 \
@@ -145,3 +155,60 @@
 **Constraints/Assumptions:** Assumes input chords contain valid `notes` arrays with properly formatted pitch strings (e.g., "C2"). Generates Format 0 MIDI files (single track) with fixed parameters for velocity and timing. Limited to standard MIDI features—no advanced controller data, program changes, or tempo variations within the file.
 
 **Non-Responsibilities/Limitations:** Does not handle audio playback (managed by `audio.js`, `SynthEngine.js`). Does not provide visualization of the MIDI data. Does not support MIDI import. Does not generate chord inversions or voicings (handled by `inversions.js`). No support for Format 1 or 2 MIDI files, multiple tracks, or advanced MIDI messages beyond basic note events.
+\
+---\
+\
+### chord-extensions.js
+
+**Purpose:** Selectively applies chord extensions (sevenths, ninths) to appropriate chords in a progression, following music theory principles and desired complexity levels.
+
+**Inputs:**
+* `romanNumerals` (Array of Strings) — Progression as Roman numerals (e.g., `["I", "IV", "V", "I"]`).
+* `mode` (Object) — Mode definition containing chord qualities and scale information.
+* `chordExtensionLevel` (String, optional, default: "none") — Desired complexity level: "none", "sevenths", "extended", or "full".
+
+**Outputs:** Array of Roman numerals with appropriate extensions applied (e.g., `["I", "IV", "V7", "I"]`).
+
+**Behavior/Algorithm:** Applies a carefully controlled number of extensions based on the specified level. Uses music theory principles to prioritize extensions on functionally important chords (V, ii in ii-V progressions). Strictly limits the total number of extended chords based on the extension level to maintain musical authenticity. "Sevenths" level typically adds just one extension (V7), "extended" adds 1-2 extensions, and "full" adds 2-3 extensions with possible 9ths.
+
+**Dependencies:** None — self-contained with no external imports.
+
+**Constraints/Assumptions:**
+* Assumes valid Roman numeral input in conventional format.
+* Works best with diatonic progressions where V and ii chords have traditional functions.
+* Preserves original chord qualities (major, minor, diminished) when adding extensions.
+* Avoids extending the final chord of progressions (except in "full" jazz mode).
+
+**Non-Responsibilities/Limitations:**
+* Does not handle altered extensions (b9, #11, etc.) — only standard 7ths and 9ths.
+* Not responsible for generating the initial progression — works with existing Roman numerals.
+* Does not convert to actual chord symbols or notes — only modifies Roman numerals.
+* Not responsible for harmonic substitutions or reharmonization.
+\
+---\
+\
+### progression-generator.js
+
+**Purpose:** Manages the generation of chord progressions using music theory principles, handling chord-to-chord transitions based on probability distributions specific to each musical mode.
+
+**Inputs:**
+* `length` (Number, optional, default: 4) — Desired length of progression.
+* `mode` (Object, optional, default: MODES.ionian) — Mode definition containing intervals, chord qualities, and transitions.
+
+**Outputs:** Array of Roman numeral strings representing chord progressions (e.g., `["I", "vi", "IV", "V"]`).
+
+**Behavior/Algorithm:** Generates chord progressions by selecting the tonic chord of the given mode as the starting point, then repeatedly selecting subsequent chords based on transition probabilities defined in the mode. Uses fallback transition matrices when mode-specific transitions aren't defined, ensuring musically appropriate progressions in all modes.
+
+**Dependencies:**
+* `./modes`: Import of mode definitions (`MODES`).
+
+**Constraints/Assumptions:**
+* Assumes all modes have a defined name and preferably transition probabilities.
+* Works with both major-based modes (Ionian, Lydian, Mixolydian) and minor-based modes (Dorian, Phrygian, Aeolian, Locrian).
+* Relies on Roman numeral notation for chord representation.
+
+**Non-Responsibilities/Limitations:**
+* Does not handle chord extensions (sevenths, ninths, etc.) — delegated to chord-extensions.js.
+* Does not convert Roman numerals to actual chord symbols or notes — delegated to core.js.
+* Does not apply voice leading or inversions — delegated to inversions.js.
+* Not responsible for final note generation or audio output.
