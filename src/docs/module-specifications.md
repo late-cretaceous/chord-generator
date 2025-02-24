@@ -121,3 +121,27 @@
 **Constraints/Assumptions:** Assumes `progression` contains valid chord objects\'97renders nothing if empty. Relies on external tempo and preset definitions.\
 \
 **Non-Responsibilities/Limitations:** Does not generate or modify chord progressions (handled by `logic.js`, `inversions.js`). Does not compute frequencies or manage audio synthesis (handled by `audio.js`, `SynthEngine.js`).}
+\
+---\
+\
+### midi-export.js
+
+**Purpose:** Converts chord progression data to standard MIDI file format for export and download, enabling users to save progressions for use in external digital audio workstations or notation software.
+
+**Inputs:**
+* `progression`: Array of chord objects—`{ root: string, quality: string, bass: string, notes: string[] }`—from `logic.js` or `inversions.js`.
+* `filename` (String, optional, default: "progression.mid")—Output filename for download.
+* `options` (Object, optional)—Additional parameters such as tempo.
+
+**Outputs:** 
+* `exportToMidi`: Blob object containing binary MIDI data.
+* `downloadMidi`: No return value—triggers browser download of MIDI file.
+
+**Behavior/Algorithm:** Converts pitch-specific notes (e.g., "C2") to MIDI note numbers via direct calculation. Constructs a standards-compliant MIDI file by sequentially adding header chunk, track events (note on/off messages), and metadata. Creates a two-beat duration for each chord, preserving the progression's rhythm. Provides both in-memory export and user-facing download functions.
+
+**Dependencies:**
+* `core.js`: `NOTES`—for note-to-MIDI conversion.
+
+**Constraints/Assumptions:** Assumes input chords contain valid `notes` arrays with properly formatted pitch strings (e.g., "C2"). Generates Format 0 MIDI files (single track) with fixed parameters for velocity and timing. Limited to standard MIDI features—no advanced controller data, program changes, or tempo variations within the file.
+
+**Non-Responsibilities/Limitations:** Does not handle audio playback (managed by `audio.js`, `SynthEngine.js`). Does not provide visualization of the MIDI data. Does not support MIDI import. Does not generate chord inversions or voicings (handled by `inversions.js`). No support for Format 1 or 2 MIDI files, multiple tracks, or advanced MIDI messages beyond basic note events.

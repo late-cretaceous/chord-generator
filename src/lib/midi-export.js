@@ -1,5 +1,37 @@
 // src/lib/midi-export.js
-import { createChordVoicing } from './voicings';
+import { NOTES } from './core';
+
+/**
+ * Converts a note string (e.g. "C2") to its MIDI note number
+ * @param {string} noteWithOctave - Note string in format "C2"
+ * @returns {number|null} MIDI note number or null if invalid
+ */
+function noteToMidi(noteWithOctave) {
+  const match = noteWithOctave.match(/([A-G][#]?)([0-9])/);
+  if (!match) return null;
+  const [_, note, octave] = match;
+  const noteIndex = NOTES.indexOf(note);
+  if (noteIndex === -1) return null;
+  return noteIndex + (parseInt(octave) + 2) * 12; // C2 = MIDI 48
+}
+
+/**
+ * Creates chord voicing data suitable for MIDI generation
+ * @param {Object} chord - Chord object with notes array
+ * @param {boolean} useFullVoicing - Whether to use full chord or just bass
+ * @returns {Array} Array of objects with midiNote property
+ */
+function createChordMidiVoicing(chord, useFullVoicing = true) {
+  if (!chord || !chord.notes || !chord.notes.length) return [];
+  
+  // Use full chord or just the bass note based on the parameter
+  const notesToUse = useFullVoicing ? chord.notes : [chord.bass];
+  
+  return notesToUse.map(note => {
+    const midiNote = noteToMidi(note);
+    return midiNote !== null ? { midiNote } : null;
+  }).filter(Boolean); // Remove any null entries
+}
 
 function numberToVariableLengthQuantity(num) {
     if (num === 0) return [0];
@@ -17,7 +49,13 @@ function numberToVariableLengthQuantity(num) {
     return bytes;
 }
 
-export function exportToMidi(progression) {
+/**
+ * Exports chord progression to MIDI format
+ * @param {Array} progression - Array of chord objects
+ * @param {Object} options - Optional parameters (tempo)
+ * @returns {Blob} MIDI file as a Blob
+ */
+export function exportToMidi(progression, options = {}) {
     // Constants
     const HEADER_CHUNK_TYPE = [0x4D, 0x54, 0x68, 0x64];  // "MThd"
     const TRACK_CHUNK_TYPE = [0x4D, 0x54, 0x72, 0x6B];   // "MTrk"
@@ -43,12 +81,11 @@ export function exportToMidi(progression) {
 
     // Process each chord
     progression.forEach((chord, chordIndex) => {
-        const voicing = createChordVoicing(chord, true);
+        // Use our new function instead of the deprecated one
+        const voicing = createChordMidiVoicing(chord, true);
         
         // Note ON for all notes in the chord (simultaneously)
-        voicing.forEach(({ frequency }, noteIndex) => {
-            const midiNote = Math.round(69 + 12 * Math.log2(frequency / 440));
-            
+        voicing.forEach(({ midiNote }, noteIndex) => {
             // Delta time (0 for all notes in chord - they start together)
             if (noteIndex === 0 && chordIndex === 0) {
                 // First note of first chord
@@ -68,9 +105,7 @@ export function exportToMidi(progression) {
         });
 
         // Note OFF for all notes after TICKS_PER_BEAT * 2 ticks (two beats)
-        voicing.forEach(({ frequency }, noteIndex) => {
-            const midiNote = Math.round(69 + 12 * Math.log2(frequency / 440));
-            
+        voicing.forEach(({ midiNote }, noteIndex) => {
             // Delta time - two beats for first note, 0 for others
             if (noteIndex === 0) {
                 trackEvents.push(...numberToVariableLengthQuantity(TICKS_PER_BEAT * BEATS_PER_CHORD));
@@ -104,8 +139,14 @@ export function exportToMidi(progression) {
     return new Blob([midiData], { type: 'audio/midi' });
 }
 
-export function downloadMidi(progression, filename = 'progression.mid') {
-    const midiBlob = exportToMidi(progression);
+/**
+ * Downloads the MIDI file for a chord progression
+ * @param {Array} progression - Array of chord objects
+ * @param {string} filename - Output filename
+ * @param {Object} options - Optional parameters (passed to exportToMidi)
+ */
+export function downloadMidi(progression, filename = 'progression.mid', options = {}) {
+    const midiBlob = exportToMidi(progression, options);
     const url = URL.createObjectURL(midiBlob);
     const link = document.createElement('a');
     link.href = url;
