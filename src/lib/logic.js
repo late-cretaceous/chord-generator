@@ -1,7 +1,7 @@
 // lib/logic.js
 import { MODES } from './modes';
 import { calculateModalRoot, romanToChordSymbols, getNotesFromChordSymbol, parseChordSymbol } from './core';
-import { applyProgressionInversions } from './inversions';
+import { applyProgressionInversions } from './voicing';
 import { generateChordProgression } from './progression-generator';
 import { applyChordExtensions } from './chord-extensions';
 

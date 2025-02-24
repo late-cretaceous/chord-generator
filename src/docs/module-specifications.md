@@ -27,7 +27,7 @@
 \
 **Constraints/Assumptions:** Assumes 12-tone equal temperament and Western notation (e.g., "C", "F#").\
 \
-**Non-Responsibilities/Limitations:** Does not manage chord progressions or inversions (handled by `logic.js`, `inversions.js`). Does not play audio or interact with playback systems (handled by `audio.js`).\
+**Non-Responsibilities/Limitations:** Does not manage chord progressions or inversions (handled by `logic.js`, `voicing.js`). Does not play audio or interact with playback systems (handled by `audio.js`).\
 \
 ---\
 \
@@ -50,7 +50,7 @@
 **Dependencies:**
 * `./modes`: Mode definitions (`MODES`).
 * `./core`: Core music theory utilities.
-* `./inversions`: Voice leading and inversion logic.
+* `./voicing`: Voice leading and inversion logic.
 * `./progression-generator`: Roman numeral progression generation.
 * `./chord-extensions`: Selective application of chord extensions.
 
@@ -67,7 +67,7 @@
 \
 ---\
 \
-### inversions.js\
+### voicing.js\
 \
 **Purpose:** Optimizes a chord progression by applying inversions based on voice-leading principles, adjusting pitch-specific chord voicings.\
 \
@@ -106,7 +106,7 @@
 \
 **Constraints/Assumptions:** Assumes pitches are valid strings (e.g., "C2")\'97no error correction beyond null checks. Relies on `SynthEngine` for actual sound generation.\
 \
-**Non-Responsibilities/Limitations:** Does not generate chords, inversions, or progressions (handled by `logic.js`, `inversions.js`). Does not reorder notes or apply musical logic\'97plays `notes` as provided.\
+**Non-Responsibilities/Limitations:** Does not generate chords, inversions, or progressions (handled by `logic.js`, `voicing.js`). Does not reorder notes or apply musical logic\'97plays `notes` as provided.\
 \
 ---\
 \
@@ -130,7 +130,7 @@
 \
 **Constraints/Assumptions:** Assumes `progression` contains valid chord objects\'97renders nothing if empty. Relies on external tempo and preset definitions.\
 \
-**Non-Responsibilities/Limitations:** Does not generate or modify chord progressions (handled by `logic.js`, `inversions.js`). Does not compute frequencies or manage audio synthesis (handled by `audio.js`, `SynthEngine.js`).}
+**Non-Responsibilities/Limitations:** Does not generate or modify chord progressions (handled by `logic.js`, `voicing.js`). Does not compute frequencies or manage audio synthesis (handled by `audio.js`, `SynthEngine.js`).}
 \
 ---\
 \
@@ -139,7 +139,7 @@
 **Purpose:** Converts chord progression data to standard MIDI file format for export and download, enabling users to save progressions for use in external digital audio workstations or notation software.
 
 **Inputs:**
-* `progression`: Array of chord objects—`{ root: string, quality: string, bass: string, notes: string[] }`—from `logic.js` or `inversions.js`.
+* `progression`: Array of chord objects—`{ root: string, quality: string, bass: string, notes: string[] }`—from `logic.js` or `voicing.js`.
 * `filename` (String, optional, default: "progression.mid")—Output filename for download.
 * `options` (Object, optional)—Additional parameters such as tempo.
 
@@ -154,7 +154,7 @@
 
 **Constraints/Assumptions:** Assumes input chords contain valid `notes` arrays with properly formatted pitch strings (e.g., "C2"). Generates Format 0 MIDI files (single track) with fixed parameters for velocity and timing. Limited to standard MIDI features—no advanced controller data, program changes, or tempo variations within the file.
 
-**Non-Responsibilities/Limitations:** Does not handle audio playback (managed by `audio.js`, `SynthEngine.js`). Does not provide visualization of the MIDI data. Does not support MIDI import. Does not generate chord inversions or voicings (handled by `inversions.js`). No support for Format 1 or 2 MIDI files, multiple tracks, or advanced MIDI messages beyond basic note events.
+**Non-Responsibilities/Limitations:** Does not handle audio playback (managed by `audio.js`, `SynthEngine.js`). Does not provide visualization of the MIDI data. Does not support MIDI import. Does not generate chord inversions or voicings (handled by `voicing.js`). No support for Format 1 or 2 MIDI files, multiple tracks, or advanced MIDI messages beyond basic note events.
 \
 ---\
 \
@@ -210,5 +210,5 @@
 **Non-Responsibilities/Limitations:**
 * Does not handle chord extensions (sevenths, ninths, etc.) — delegated to chord-extensions.js.
 * Does not convert Roman numerals to actual chord symbols or notes — delegated to core.js.
-* Does not apply voice leading or inversions — delegated to inversions.js.
+* Does not apply voice leading or inversions — delegated to voicing.js.
 * Not responsible for final note generation or audio output.
