@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
-import { NOTES } from '../lib/core';
+import { NOTES, getQualitySymbol } from '../lib/core';
 import ProgressionPlayer from './ProgressionPlayer';
 import './ChordGenerator.css';
 
@@ -26,17 +26,20 @@ const ChordGenerator = () => {
 
     const handleGenerate = () => {
         const mode = MODES[selectedMode] || MODES.ionian;
-        setProgression(generateProgression(length, selectedKey, mode, useInversions));
+        const newProgression = generateProgression(length, selectedKey, mode, useInversions);
+        console.log('Generated:', newProgression); // Debug
+        setProgression(newProgression);
     };
 
     const handleTempoChange = (newTempo) => setCurrentTempo(newTempo);
 
-    // Updated to handle pitch-specific chord objects
     const formatChord = (chord) => {
-        if (!chord || typeof chord !== 'object') return chord; // Fallback for invalid data
-        const base = `${chord.root}${chord.quality}`; // e.g., "C" or "Cm"
-        if (chord.bass && chord.bass !== `${chord.root}2`) { // Check if bass differs from root position
-            const bassNote = chord.bass; // e.g., "B2"
+        if (!chord || typeof chord !== 'object') return chord;
+        // Ensure quality is normalized even if "major" slips through
+        const quality = getQualitySymbol(chord.quality === 'major' ? '' : chord.quality);
+        const base = `${chord.root}${quality}`;
+        if (chord.bass && chord.bass !== `${chord.root}2`) {
+            const bassNote = chord.bass.replace(/[0-9]/, '');
             return <>{base}<span className="chord-inversion">/{bassNote}</span></>;
         }
         return base;
@@ -46,7 +49,6 @@ const ChordGenerator = () => {
         <div className="container">
             <div className="card">
                 <h2>Chord Progression Generator</h2>
-                
                 <div className="display">
                     {progression.length > 0 ? (
                         <>
@@ -65,21 +67,16 @@ const ChordGenerator = () => {
                             />
                         </>
                     ) : (
-                        <p className="placeholder">
-                            Click generate to create a progression
-                        </p>
+                        <p className="placeholder">Click generate to create a progression</p>
                     )}
                 </div>
-
+                {/* Controls unchanged */}
                 <div className="controls">
-                    {/* Unchanged controls */}
                     <div className="control-group">
                         <div className="key-control">
                             <label htmlFor="key-select">Key:</label>
                             <select id="key-select" value={selectedKey} onChange={handleKeyChange} className="key-select">
-                                {NOTES.map(note => (
-                                    <option key={note} value={note}>{note}</option>
-                                ))}
+                                {NOTES.map(note => <option key={note} value={note}>{note}</option>)}
                             </select>
                         </div>
                         <div className="mode-control">
