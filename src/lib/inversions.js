@@ -1,69 +1,45 @@
-import { NOTES, parseChordSymbol, getNotesFromChordSymbol } from './core';
+import { NOTES, pitchToMidi, midiToPitch, parseChordSymbol } from './core';
 
-/**
- * Determines the possible inversions for a chord with reordered notes
- * @param {string[]} chordNotes - Array of notes in the chord
- * @returns {Array<{inversion: number, bassNote: string, notes: string[]}>} Possible inversions
- */
-export function getInversions(chordNotes) {
-    if (!chordNotes || !chordNotes.length) return [];
+export function getInversions(chord) {
+    if (!chord.notes || !chord.notes.length) return [];
+    const pitchClasses = chord.notes.map(note => note.replace(/[0-9]/, ''));
 
     const inversions = [];
-    for (let i = 0; i < chordNotes.length; i++) {
-        const bassNote = chordNotes[i];
-        const reorderedNotes = [...chordNotes.slice(i), ...chordNotes.slice(0, i)];
+    for (let i = 0; i < pitchClasses.length; i++) {
+        const bassPitchClass = pitchClasses[i];
+        const reorderedPitchClasses = [...pitchClasses.slice(i), ...pitchClasses.slice(0, i)];
+        const bassMidi = pitchToMidi(bassPitchClass, 2); // Start at octave 2
+        const notes = reorderedPitchClasses.map((pc, idx) => {
+            const midiOffset = idx * 4; // Stack upward, approx. major third intervals
+            return midiToPitch(bassMidi + midiOffset);
+        });
         inversions.push({
             inversion: i,
-            bassNote,
-            notes: reorderedNotes
+            bassNote: notes[0],
+            notes
         });
     }
     return inversions;
 }
 
-/**
- * Calculates voice leading distance between two chords by position
- * @param {string[]} previousChord - Notes of the previous chord
- * @param {string[]} currentChord - Notes of the current chord
- * @returns {number} Average voice leading distance per voice
- */
 function calculateVoiceLeadingDistance(previousChord, currentChord) {
     if (!previousChord || !currentChord || !previousChord.length || !currentChord.length) {
         return Infinity;
     }
 
-    const noteIndices = {};
-    NOTES.forEach((note, index) => noteIndices[note] = index);
-
     let totalDistance = 0;
     const minVoices = Math.min(previousChord.length, currentChord.length);
 
-    // Pair notes by position (e.g., bass to bass)
     for (let i = 0; i < minVoices; i++) {
-        const prevNote = previousChord[i];
-        const currNote = currentChord[i];
-        if (!noteIndices.hasOwnProperty(prevNote) || !noteIndices.hasOwnProperty(currNote)) {
-            continue;
-        }
-
-        const prevIndex = noteIndices[prevNote];
-        const currIndex = noteIndices[currNote];
-        const distance = Math.min(
-            Math.abs(currIndex - prevIndex),
-            12 - Math.abs(currIndex - prevIndex)
-        );
+        const prevMidi = pitchToMidi(previousChord[i].replace(/[0-9]/, ''), parseInt(previousChord[i].slice(-1)));
+        const currMidi = pitchToMidi(currentChord[i].replace(/[0-9]/, ''), parseInt(currentChord[i].slice(-1)));
+        const distance = Math.abs(currMidi - prevMidi);
         totalDistance += distance;
     }
 
     return minVoices > 0 ? totalDistance / minVoices : Infinity;
 }
 
-/**
- * Selects best inversion based on voice leading
- * @param {Array<{inversion: number, bassNote: string, notes: string[]}>} inversions - Possible inversions
- * @param {string[]} previousChordNotes - Notes of the previous chord
- * @returns {Object} Best inversion based on voice leading
- */
 function selectBestInversion(inversions, previousChordNotes) {
     if (!inversions.length) return null;
     if (!previousChordNotes || !previousChordNotes.length) return inversions[0];
@@ -77,42 +53,31 @@ function selectBestInversion(inversions, previousChordNotes) {
     return weightedInversions.sort((a, b) => a.distance - b.distance)[0];
 }
 
-/**
- * Applies bias to different inversions to match common practice
- * @param {number} inversion - Inversion number
- * @returns {number} Bias value
- */
 function getInversionBias(inversion) {
     const biases = {
-        0: 0.05,  // Root position: slight penalty
-        1: -0.05, // First inversion: slight advantage
-        2: 0.1,   // Second inversion: moderate penalty
-        3: 0.2    // Third inversion: significant penalty
+        0: 0.05,
+        1: -0.05,
+        2: 0.1,
+        3: 0.2
     };
     return biases[inversion] || 0;
 }
 
-/**
- * Determines if an inversion improves voice leading over root position
- * @param {string[]} currentChordNotes - Notes of the current chord
- * @param {string[]} previousChordNotes - Notes of the previous chord
- * @returns {{ shouldInvert: boolean, bestInversion: Object }} Decision and best inversion
- */
-function assessInversionBenefit(currentChordNotes, previousChordNotes) {
-    if (!previousChordNotes || !previousChordNotes.length) {
+function assessInversionBenefit(currentChord, previousChord) {
+    if (!previousChord || !previousChord.notes.length) {
         console.log('No previous notes, skipping inversion');
         return { shouldInvert: false, bestInversion: null };
     }
 
-    const inversions = getInversions(currentChordNotes);
+    const inversions = getInversions(currentChord);
     if (!inversions.length) {
         console.log('No inversions available');
         return { shouldInvert: false, bestInversion: null };
     }
 
-    const rootDistance = calculateVoiceLeadingDistance(previousChordNotes, inversions[0].notes);
-    const bestInversion = selectBestInversion(inversions, previousChordNotes);
-    const bestDistance = calculateVoiceLeadingDistance(previousChordNotes, bestInversion.notes);
+    const rootDistance = calculateVoiceLeadingDistance(previousChord.notes, inversions[0].notes);
+    const bestInversion = selectBestInversion(inversions, previousChord.notes);
+    const bestDistance = calculateVoiceLeadingDistance(previousChord.notes, bestInversion.notes);
 
     console.log(`Root Distance: ${rootDistance}, Best Distance: ${bestDistance}, Improvement: ${rootDistance - bestDistance}`);
 
@@ -123,48 +88,30 @@ function assessInversionBenefit(currentChordNotes, previousChordNotes) {
 }
 
 /**
- * Formats a chord symbol with inversion
- * @param {string} root - Root note
- * @param {string} quality - Chord quality suffix
- * @param {string} bassNote - Bass note for inversion
- * @returns {string} Formatted chord symbol
- */
-export function formatInversionSymbol(root, quality, bassNote) {
-    if (!bassNote || bassNote === root) return root + quality;
-    return `${root}${quality}/${bassNote}`;
-}
-
-/**
- * Processes a chord progression to apply inversions for optimal voice leading
- * @param {string[]} progression - Array of chord symbols
- * @returns {string[]} Progression with inversions applied where beneficial
+ * Applies inversions to a pitch-specific progression
+ * @param {Array<{root: string, quality: string, bass: string, notes: string[]}>} progression
+ * @returns {Array<{root: string, quality: string, bass: string, notes: string[]}>}
  */
 export function applyProgressionInversions(progression) {
     if (!progression || progression.length === 0) return progression;
 
     const result = [];
-    let previousNotes = null;
+    let previousChord = null;
 
-    progression.forEach((chordSymbol) => {
-        const parsed = parseChordSymbol(chordSymbol);
-        if (!parsed) {
-            result.push(chordSymbol);
-            previousNotes = getNotesFromChordSymbol(chordSymbol);
-            return;
-        }
-
-        const { root, quality, suffix } = parsed;
-        const chordNotes = getNotesFromChordSymbol(chordSymbol);
-
-        const { shouldInvert, bestInversion } = assessInversionBenefit(chordNotes, previousNotes);
+    progression.forEach((chord) => {
+        const { shouldInvert, bestInversion } = assessInversionBenefit(chord, previousChord);
 
         if (shouldInvert && bestInversion && bestInversion.inversion !== 0) {
-            const invertedSymbol = formatInversionSymbol(root, suffix, bestInversion.bassNote);
-            result.push(invertedSymbol);
-            previousNotes = bestInversion.notes;
+            result.push({
+                root: chord.root,
+                quality: chord.quality,
+                bass: bestInversion.bassNote,
+                notes: bestInversion.notes
+            });
+            previousChord = { ...chord, notes: bestInversion.notes };
         } else {
-            result.push(chordSymbol);
-            previousNotes = chordNotes;
+            result.push(chord);
+            previousChord = chord;
         }
     });
 
