@@ -11,6 +11,7 @@
 │   │   ├── ProgressionPlayer.jsx
 │   │   └── SynthControls.jsx
 │   ├── docs
+│   │   ├── architectural-guidelines.md
 │   │   ├── module-specifications.md
 │   │   ├── project-directory-tree.md
 │   │   ├── README.md
