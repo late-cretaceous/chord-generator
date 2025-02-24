@@ -32,8 +32,7 @@
 │   │   ├── core.js
 │   │   ├── inversions.js
 │   │   ├── logic.js
-│   │   ├── midi-export.js
-│   │   └── voicings.js
+│   │   └── midi-export.js
 │   ├── App.css
 │   ├── App.jsx
 │   ├── index.css
