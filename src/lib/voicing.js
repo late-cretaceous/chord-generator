@@ -3,8 +3,16 @@ import { NOTES, pitchToMidi, midiToPitch } from './core';
 import { resetMelodicState } from './melodic-state';
 import { 
     calculateVoiceLeadingScore, 
-    getInversionBias 
+    getInversionBias,
+    analyzeCadentialPattern,
+    analyzeLeadingToneResolution,
+    optimizeLeadingToneVoicing,
+    hasLeadingTone
 } from './voice-leading-analysis';
+import {
+    applyCadentialPattern,
+    suggestCadentialPattern
+} from './cadential-patterns';
 
 /**
  * Gets all possible inversions for a chord
@@ -30,7 +38,6 @@ export function getInversions(chord) {
         });
     }
     
-    console.log('Inversions for', chord.notes, ':', inversions);
     return inversions;
 }
 
@@ -42,6 +49,7 @@ export function getInversions(chord) {
  * @param {number} chordIndex - Position in the progression
  * @param {Object} prevChordObj - Previous chord object
  * @param {Object} nextChordObj - Next chord object
+ * @param {string} key - Key center (for leading tone analysis)
  * @returns {Object} The best inversion
  */
 function selectBestInversion(
@@ -50,7 +58,8 @@ function selectBestInversion(
     progressionLength, 
     chordIndex, 
     prevChordObj, 
-    nextChordObj
+    nextChordObj,
+    key = 'C'
 ) {
     if (!inversions.length) return null;
     if (!previousChordNotes || !previousChordNotes.length) return inversions[0];
@@ -66,8 +75,50 @@ function selectBestInversion(
             nextChordObj
         ) + getInversionBias(inv.inversion, chordIndex, progressionLength);
         
-        console.log('Inversion', inv.notes, 'Score:', score);
-        return { ...inv, score };
+        // Apply cadential bonus/penalty
+        let cadentialAdjustment = 0;
+        if (nextChordObj && chordIndex >= progressionLength - 2) {
+            const cadentialAnalysis = analyzeCadentialPattern(
+                { ...prevChordObj, notes: inv.notes },
+                nextChordObj,
+                chordIndex,
+                progressionLength
+            );
+            
+            if (cadentialAnalysis.isCadential) {
+                if (cadentialAnalysis.isAuthenticCadence) {
+                    cadentialAdjustment -= 2; // Bonus for authentic cadence
+                    
+                    if (cadentialAnalysis.isPerfectAuthenticCadence) {
+                        cadentialAdjustment -= 3; // Extra bonus for perfect authentic cadence
+                    }
+                }
+            }
+        }
+        
+        // Apply leading tone bonus/penalty
+        let leadingToneAdjustment = 0;
+        if (nextChordObj && hasLeadingTone({ ...prevChordObj, notes: inv.notes }, key)) {
+            const ltAnalysis = analyzeLeadingToneResolution(
+                previousChordNotes,
+                inv.notes,
+                prevChordObj,
+                nextChordObj
+            );
+            
+            if (ltAnalysis.hasLeadingTone) {
+                if (ltAnalysis.resolvesCorrectly) {
+                    leadingToneAdjustment -= 3; // Bonus for proper leading tone resolution
+                } else {
+                    leadingToneAdjustment += 4; // Penalty for improper leading tone handling
+                }
+            }
+        }
+                  
+        return { 
+            ...inv, 
+            score: score + cadentialAdjustment + leadingToneAdjustment 
+        };
     });
 
     // Sort by score (lower is better)
@@ -81,6 +132,7 @@ function selectBestInversion(
  * @param {number} progressionLength - Total progression length
  * @param {number} chordIndex - Position in the progression
  * @param {Array} progression - Full progression array
+ * @param {string} key - Key center (for leading tone analysis)
  * @returns {Object} Assessment result with best inversion
  */
 function assessInversionBenefit(
@@ -88,16 +140,15 @@ function assessInversionBenefit(
     previousChord, 
     progressionLength, 
     chordIndex,
-    progression
+    progression,
+    key = 'C'
 ) {
     if (!previousChord || !previousChord.notes.length) {
-        console.log('No previous notes, skipping inversion');
         return { shouldInvert: false, bestInversion: null };
     }
 
     const inversions = getInversions(currentChord);
     if (!inversions.length) {
-        console.log('No inversions available');
         return { shouldInvert: false, bestInversion: null };
     }
 
@@ -121,7 +172,8 @@ function assessInversionBenefit(
         progressionLength, 
         chordIndex,
         previousChord,
-        nextChord
+        nextChord,
+        key
     );
     
     const bestScore = calculateVoiceLeadingScore(
@@ -133,11 +185,34 @@ function assessInversionBenefit(
         nextChord
     );
 
-    console.log(`Root Score: ${rootScore}, Best Score: ${bestScore}, Improvement: ${rootScore - bestScore}`);
-
-    // Determine if inversion is worthwhile (lower threshold makes more inversions)
-    const improvementThreshold = 0.8;
-    const shouldInvert = (rootScore - bestScore) > improvementThreshold;
+    // Handle special cases for cadential patterns
+    let shouldInvert = (rootScore - bestScore) > 0.8; // Basic threshold
+    
+    // If this is at the end of the progression, make additional checks
+    if (chordIndex >= progressionLength - 2 && nextChord) {
+        // For authentic cadences, prefer certain inversions
+        const isAuthenticCadence = 
+            (currentChord.root !== nextChord.root) && // Different roots
+            (nextChord.bass && nextChord.bass.startsWith(nextChord.root)); // Next chord in root position
+            
+        if (isAuthenticCadence) {
+            // For dominant chords moving to tonic, ensure leading tone handling
+            if (hasLeadingTone(currentChord, nextChord.root)) {
+                // Calculate additional score factor for leading tone resolution
+                const ltAnalysis = analyzeLeadingToneResolution(
+                    previousChord.notes,
+                    bestInversion.notes,
+                    previousChord,
+                    nextChord
+                );
+                
+                if (ltAnalysis.hasLeadingTone && !ltAnalysis.resolvesCorrectly) {
+                    // Strongly encourage inversion if it fixes leading tone resolution
+                    shouldInvert = true;
+                }
+            }
+        }
+    }
 
     return { shouldInvert, bestInversion };
 }
@@ -155,11 +230,94 @@ export function formatInversionSymbol(root, quality, bassNote) {
 }
 
 /**
+ * Optimize leading tone treatment in a progression
+ * @param {Array} progression - Array of chord objects
+ * @param {string} key - Key center (tonic)
+ * @param {string} modeName - Name of the mode
+ * @returns {Array} Progression with optimized leading tones
+ */
+function optimizeLeadingTones(progression, key, modeName) {
+    if (!progression || progression.length < 2) return progression;
+    
+    const result = [];
+    
+    for (let i = 0; i < progression.length; i++) {
+        const currentChord = progression[i];
+        const isNearEnd = i >= progression.length - 2;
+        const nextChord = i < progression.length - 1 ? progression[i + 1] : null;
+        
+        // Apply leading tone optimization for dominant chords at cadence points
+        // But only with 70% probability to maintain variety
+        if (isNearEnd && nextChord && hasLeadingTone(currentChord, nextChord.root) && Math.random() < 0.7) {
+            const optimizedChord = optimizeLeadingToneVoicing(currentChord, nextChord.root);
+            result.push(optimizedChord);
+        } else {
+            result.push(currentChord);
+        }
+    }
+    
+    return result;
+}
+
+/**
+ * Apply cadential patterns to Roman numeral progressions
+ * @param {Array} romanNumerals - Array of Roman numeral chord symbols
+ * @param {string} modeName - Name of the mode
+ * @param {string} cadenceType - Type of cadence to apply (null for automatic)
+ * @param {boolean} strictCadence - Whether to strictly enforce the cadence
+ * @returns {Array} Modified progression with cadential pattern
+ */
+export function applyCadentialPatterns(romanNumerals, modeName, cadenceType = null, strictCadence = false) {
+    if (!romanNumerals || romanNumerals.length < 2) return romanNumerals;
+    
+    // Add variety to cadence handling
+    if (strictCadence && cadenceType) {
+        // Strict enforcement of specified cadence
+        return applyCadentialPattern(romanNumerals, modeName, cadenceType);
+    } else if (cadenceType) {
+        // Apply specified cadence with 50% probability
+        if (Math.random() < 0.5) {
+            return applyCadentialPattern(romanNumerals, modeName, cadenceType);
+        }
+    } else if (Math.random() < 0.4) {
+        // 40% chance to apply a suggested cadence for more variety
+        const suggestedCadence = suggestCadentialPattern(romanNumerals, modeName);
+        return applyCadentialPattern(romanNumerals, modeName, suggestedCadence);
+    }
+    
+    // Otherwise, keep original progression
+    return romanNumerals;
+}
+
+/**
+ * Apply all voice-related optimizations to a progression
+ * @param {Array} progression - Array of chord objects
+ * @param {string} key - Key center (tonic)
+ * @param {string} modeName - Name of the mode
+ * @param {boolean} useInversions - Whether to apply inversions
+ * @returns {Array} Progression with optimized voices
+ */
+export function optimizeVoiceLeading(progression, key, modeName, useInversions = true) {
+    if (!progression || progression.length === 0) return progression;
+    
+    // First optimize leading tones
+    const ltOptimized = optimizeLeadingTones(progression, key, modeName);
+    
+    // Then apply inversions if requested
+    if (useInversions) {
+        return applyProgressionInversions(ltOptimized, key);
+    }
+    
+    return ltOptimized;
+}
+
+/**
  * Apply inversions to a progression with enhanced voice leading
  * @param {Array} progression - Array of chord objects
+ * @param {string} key - Key center (for leading tone analysis)
  * @returns {Array} Progression with optimized inversions
  */
-export function applyProgressionInversions(progression) {
+export function applyProgressionInversions(progression, key = 'C') {
     if (!progression || progression.length === 0) return progression;
 
     const result = [];
@@ -169,14 +327,16 @@ export function applyProgressionInversions(progression) {
     resetMelodicState();
 
     progression.forEach((chord, chordIndex) => {
+        // Standard inversion assessment
         const { shouldInvert, bestInversion } = assessInversionBenefit(
             chord, 
             previousChord, 
-            progression.length, 
+            progression.length,
             chordIndex,
-            progression
+            progression,
+            key
         );
-
+        
         if (shouldInvert && bestInversion && bestInversion.inversion !== 0) {
             result.push({
                 root: chord.root,

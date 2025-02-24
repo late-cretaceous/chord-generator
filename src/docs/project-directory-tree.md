@@ -29,6 +29,7 @@
 │   │   │   ├── presets.js
 │   │   │   └── SynthEngine.js
 │   │   ├── audio.js
+│   │   ├── cadential-patterns.js
 │   │   ├── chord-extensions.js
 │   │   ├── core.js
 │   │   ├── logic.js

@@ -33,19 +33,57 @@ export function getMelodicState() {
 }
 
 /**
+ * Specifically analyzes and scores melody notes that are leading tones
+ * @param {number} melodyMidi - MIDI pitch value of the melody note
+ * @param {number} tonicMidi - MIDI pitch value of the tonic note
+ * @param {number} previousMelodyMidi - MIDI pitch value of the previous melody note
+ * @returns {Object} Score adjustments based on leading tone analysis
+ */
+function analyzeLeadingToneInMelody(melodyMidi, tonicMidi, previousMelodyMidi) {
+    const scoreAdjustments = {
+        leadingToneAdjustment: 0,
+        totalAdjustment: 0
+    };
+    
+    if (previousMelodyMidi === null || tonicMidi === null) {
+        return scoreAdjustments;
+    }
+    
+    // Check if previous note was a leading tone (semitone below tonic)
+    const isFromLeadingTone = (tonicMidi - previousMelodyMidi) === 1;
+    
+    if (isFromLeadingTone) {
+        // If we're coming from a leading tone, strongly prefer resolving to tonic
+        if (melodyMidi === tonicMidi) {
+            // Proper resolution of leading tone to tonic
+            scoreAdjustments.leadingToneAdjustment = -4; // Strong reward
+        } else {
+            // Leading tone that doesn't resolve to tonic
+            scoreAdjustments.leadingToneAdjustment = 5; // Strong penalty
+        }
+        
+        scoreAdjustments.totalAdjustment = scoreAdjustments.leadingToneAdjustment;
+    }
+    
+    return scoreAdjustments;
+}
+
+/**
  * Update melody state based on new melody note
  * @param {number} melodyMidi - MIDI pitch value of the melody note
  * @param {number} progressionLength - Total length of progression
+ * @param {number} tonicMidi - Optional MIDI pitch value of the tonic note
  * @returns {Object} Score adjustments based on melodic analysis
  */
-export function updateMelodyState(melodyMidi, progressionLength) {
+export function updateMelodyState(melodyMidi, progressionLength, tonicMidi = null) {
     const scoreAdjustments = {
         totalAdjustment: 0,
         leapPenalty: 0,
         leapResolutionReward: 0,
         directionChangeReward: 0,
         staticMelodyPenalty: 0,
-        cadentialAdjustment: 0
+        cadentialAdjustment: 0,
+        leadingToneAdjustment: 0  // New field
     };
     
     // First note doesn't affect scoring
@@ -86,6 +124,18 @@ export function updateMelodyState(melodyMidi, progressionLength) {
         melodicState.leapOccurred = false;
     }
     
+    // Check leading tone resolution if tonic is provided
+    if (tonicMidi !== null) {
+        const leadingToneAnalysis = analyzeLeadingToneInMelody(
+            melodyMidi, 
+            tonicMidi, 
+            melodicState.lastMelodyNote
+        );
+        
+        scoreAdjustments.leadingToneAdjustment = leadingToneAnalysis.leadingToneAdjustment;
+        scoreAdjustments.totalAdjustment += leadingToneAnalysis.totalAdjustment;
+    }
+    
     // Track melodic direction for contour shaping
     if (melodyDirection !== 0) {
         if (melodyDirection === melodicState.direction) {
@@ -107,13 +157,29 @@ export function updateMelodyState(melodyMidi, progressionLength) {
         }
     }
     
-    // Create climax points at structural positions
+    // Enhanced cadential handling for phrase endings
     const isNearEnd = melodicState.phrasePosition >= progressionLength - 2;
     const isHighNote = melodyMidi >= melodicState.lastMelodyNote + 3;
     
-    if (isNearEnd && !isHighNote) {
-        // Encourage cadential movement
-        scoreAdjustments.cadentialAdjustment = 1.5;
+    if (isNearEnd) {
+        if (tonicMidi !== null) {
+            // At cadence points, encourage resolution to tonic or movement to scale degree 2
+            const distanceToTonic = Math.abs(melodyMidi - tonicMidi);
+            if (distanceToTonic === 0) {
+                // Resolve to tonic at end
+                scoreAdjustments.cadentialAdjustment = -3; // Strong reward
+            } else if (distanceToTonic === 2) {
+                // Scale degree 2 is also common at cadence points
+                scoreAdjustments.cadentialAdjustment = -1.5; // Moderate reward
+            } else {
+                // Penalize other scale degrees at cadence
+                scoreAdjustments.cadentialAdjustment = 2; // Penalty
+            }
+        } else {
+            // Without tonic context, just encourage general cadential movement
+            scoreAdjustments.cadentialAdjustment = 1.5;
+        }
+        
         scoreAdjustments.totalAdjustment += scoreAdjustments.cadentialAdjustment;
     }
     

@@ -33,7 +33,7 @@
 \
 ### logic.js
 
-**Purpose:** Serves as the main coordinator module for the chord progression generation system, providing a unified API that connects specialized components to produce complete chord progressions with proper voicings.
+**Purpose:** Serves as the main coordinator module for the chord progression generation system, providing a unified API that connects specialized components to produce complete chord progressions while maintaining proper separation of concerns.
 
 **Inputs:**
 * `length` (Number, optional, default: 4) — Desired progression length.
@@ -41,16 +41,18 @@
 * `modeName` (String/Object, optional, default: "ionian") — Musical mode.
 * `useInversions` (Boolean, optional, default: true) — Toggle inversions.
 * `rootOctave` (Number, optional, default: 2) — Base octave for pitches.
-* `useExtendedChords` (String, optional, default: "none") — Level of chord extensions to apply: "none", "sevenths", "extended", or "full".
+* `useExtendedChords` (String, optional, default: "none") — Level of chord extensions: "none", "sevenths", "extended", or "full".
+* `cadenceType` (String, optional, default: null) — Type of cadence to enforce.
+* `strictCadence` (Boolean, optional, default: false) — Whether to strictly enforce the cadence pattern.
 
 **Outputs:** Array of chord objects: `{ root: string, quality: string, bass: string, notes: string[] }` — e.g., `[{ root: "C", quality: "", bass: "C2", notes: ["C2", "E2", "G2"] }, ...]`.
 
-**Behavior/Algorithm:** Orchestrates the progression generation process by delegating specialized tasks to dedicated modules. First generates a basic Roman numeral progression, then selectively applies chord extensions based on the requested level, converts to pitch-specific chord symbols, and finally applies voice leading through inversions if requested. Maintains the public API while delegating implementation details.
+**Behavior/Algorithm:** Orchestrates the progression generation process by delegating specialized tasks to dedicated modules while preserving separation of concerns. Manages the high-level flow: (1) generates Roman numeral progressions via progression-generator.js, (2) delegates cadence handling to voicing.js, (3) applies chord extensions via chord-extensions.js, (4) converts to chord objects with notes, and (5) delegates ALL voice-leading concerns (including leading tones and inversions) to voicing.js. Acts as the coordinator rather than implementing voice-related functionality directly.
 
 **Dependencies:**
 * `./modes`: Mode definitions (`MODES`).
 * `./core`: Core music theory utilities.
-* `./voicing`: Voice leading and inversion logic.
+* `./voicing`: ALL voice-related operations (cadences, leading tones, inversions).
 * `./progression-generator`: Roman numeral progression generation.
 * `./chord-extensions`: Selective application of chord extensions.
 
@@ -58,45 +60,55 @@
 * Assumes valid key and mode name inputs — defaults to C Ionian if invalid.
 * Works with all modes defined in the MODES object.
 * Produces Western music theory-based progressions with standard chord voicings.
+* Maintains strict separation of concerns with voicing module handling ALL voice-related operations.
 
 **Non-Responsibilities/Limitations:**
+* Does not implement voice-leading directly (delegated to `voicing.js`).
 * Does not play audio or manage playback (handled by `audio.js`).
 * Does not render UI or format chord symbols for display (handled by React components).
 * Not responsible for audio synthesis (delegated to `SynthEngine.js`).
 * Does not handle MIDI export directly (handled by `midi-export.js`).
-\
 ---\
 \
 ### voicing.js
 
-**Purpose:** Coordinates the application of inversions to chord progressions based on voice-leading principles, acting as the primary interface for optimizing chord voicings and managing inversions across a progression.
+**Purpose:** Coordinates the application of all voice-related operations for chord progressions, including leading tone optimization, cadential patterns, and inversions based on voice-leading principles.
 
 **Inputs:**
-* `progression`: Array of chord objects—`{ root: string, quality: string, bass: string, notes: string[] }`—from `logic.js`.
-* Various internal inputs for helper functions, including chord objects, inversion arrays, note arrays, and position indices.
+* `progression`: Array of chord objects—`{ root: string, quality: string, bass: string, notes: string[] }`
+* `key`: String—Key center (e.g., 'C')
+* `modeName`: String—Name of the musical mode (e.g., 'ionian', 'phrygian')
+* `useInversions`: Boolean—Whether to apply inversions
+* `romanNumerals`: Array of Roman numeral chord symbols for cadential pattern application
+* `cadenceType`: String (optional)—Type of cadence to enforce
+* `strictCadence`: Boolean (optional)—Whether to strictly enforce cadences
 
 **Outputs:**
-* `applyProgressionInversions`: Array of chord objects with optimized inversions.
-* `getInversions`: Array of possible inversions for a chord.
-* `formatInversionSymbol`: Formatted chord symbol string with inversion notation.
+* `optimizeVoiceLeading`: Array of chord objects with fully optimized voices
+* `applyProgressionInversions`: Array of chord objects with optimized inversions
+* `applyCadentialPatterns`: Array of Roman numerals with appropriate cadence applied
+* `formatInversionSymbol`: Formatted chord symbol string with inversion notation
+* `getInversions`: Array of possible inversions for a chord
 
-**Behavior/Algorithm:** Coordinates the inversion optimization process by generating all possible inversions for each chord, evaluating them using voice-leading principles (delegated to specialized modules), and selecting the best option based on musical context and position within the progression. Controls when inversions should be applied based on improvement thresholds. Acts as the orchestrator between chord progression generation and detailed voice-leading analysis.
+**Behavior/Algorithm:** Serves as the primary coordinator for all voice-related operations in the chord progression system. Handles three main concerns: (1) applying appropriate cadential patterns to Roman numeral progressions, (2) optimizing leading tone treatment to ensure proper resolution, and (3) selecting inversions to create smooth voice leading. Delegates detailed analysis to voice-leading-analysis.js while maintaining overall responsibility for voice manipulation decisions. Balances musical rules with variety by using probabilistic application of voice leading principles.
 
 **Dependencies:**
-* `./core`: For pitch manipulation functions and music theory constants.
-* `./melodic-state`: For managing melodic contour state across the progression.
-* `./voice-leading-analysis`: For detailed scoring of voice leading quality.
+* `./core`: For pitch manipulation functions and music theory constants
+* `./melodic-state`: For managing melodic contour state across the progression
+* `./voice-leading-analysis`: For detailed analysis of voice leading, cadential patterns, and leading tones
+* `./cadential-patterns`: For cadential pattern suggestions and application
 
 **Constraints/Assumptions:**
-* Assumes chord objects have valid `notes` arrays.
-* Expects chords within Western music theory conventions.
-* Limited to pitch-specific voicings (e.g., "C2") rather than abstract chord symbols.
+* Assumes chord objects have valid `notes` arrays
+* Expects chords within Western music theory conventions
+* Limited to pitch-specific voicings (e.g., "C2") rather than abstract chord symbols
+* Prioritizes proper voice leading while maintaining musical variety
 
 **Non-Responsibilities/Limitations:**
-* Does not generate the initial progression (handled by `logic.js`).
-* Does not perform the actual voice-leading analysis (delegated to `voice-leading-analysis.js`).
-* Does not track melodic state directly (delegated to `melodic-state.js`).
-* Not responsible for audio playback or rendering chord symbols for display.
+* Does not generate the initial progression (handled by `progression-generator.js`)
+* Does not handle chord extensions (handled by `chord-extensions.js`)
+* Does not perform transcription to other formats like MIDI (handled by `midi-export.js`)
+* Not responsible for audio playback or rendering chord symbols for display
 \
 ---\
 \
@@ -232,38 +244,44 @@
 \
 ### voice-leading-analysis.js
 
-**Purpose:** Evaluates and scores chord transitions based on classical voice-leading principles, providing detailed analysis of harmonic connections, parallel intervals, and contextual second inversion treatment to inform optimal chord voicing selection.
+**Purpose:** Evaluates and scores chord transitions based on classical voice-leading principles, providing detailed analysis of harmonic connections, parallel intervals, cadential patterns, and leading tone treatment to inform optimal chord voicing selection.
 
 **Inputs:**
-* `previousChord`: Array of note strings (e.g., `["C2", "E2", "G2"]`)—from previous chord in progression.
-* `currentChord`: Array of note strings—for current chord being evaluated.
-* `progressionLength`: Number—total progression length for structural position awareness.
-* `chordIndex`: Number—position within the progression.
-* `prevChordObj`, `nextChordObj`: Chord objects—for contextual analysis.
+* `previousChord`: Array of note strings (e.g., `["C2", "E2", "G2"]`)—from previous chord in progression
+* `currentChord`: Array of note strings—for current chord being evaluated
+* `progressionLength`: Number—total progression length for structural position awareness
+* `chordIndex`: Number—position within the progression
+* `prevChordObj`, `nextChordObj`: Chord objects—for contextual analysis
+* `targetTonic`: String (optional)—tonic note for leading tone analysis (e.g., 'C')
 
 **Outputs:**
-* `calculateVoiceLeadingScore`: Number—score representing voice leading quality (lower is better).
-* `detectParallelPerfectIntervals`: Object—analysis of parallel fifths/octaves.
-* `analyzeSecondInversion`: Object—classification of second inversion context.
-* `getInversionBias`: Number—position-based score adjustment for inversions.
+* `calculateVoiceLeadingScore`: Number—score representing voice leading quality (lower is better)
+* `detectParallelPerfectIntervals`: Object—analysis of parallel fifths/octaves
+* `analyzeSecondInversion`: Object—classification of second inversion context
+* `analyzeCadentialPattern`: Object—detection of cadential patterns (authentic, deceptive, etc.)
+* `analyzeLeadingToneResolution`: Object—analysis of leading tone handling
+* `getInversionBias`: Number—position-based score adjustment for inversions
+* `optimizeLeadingToneVoicing`: Object—chord with optimized leading tone placement
+* `hasLeadingTone`: Boolean—whether a chord contains a leading tone
 
-**Behavior/Algorithm:** Implements sophisticated voice leading evaluation by examining consecutive chords for parallel perfect intervals (fifths and octaves), second inversion contexts (cadential, passing, pedal), bass motion smoothness, inner voice motion, and positional considerations. Applies penalties for voice leading errors and rewards for traditional voice leading practices. Uses weighted scoring to balance multiple factors, with special handling for outer voices and cadential patterns.
+**Behavior/Algorithm:** Implements sophisticated voice leading evaluation by examining consecutive chords for parallel perfect intervals, second inversion contexts, bass motion smoothness, inner voice motion, cadential patterns, and leading tone treatment. Applies penalties for voice leading errors and rewards for traditional voice leading practices. Provides special handling for dominant-tonic relationships, emphasizing proper leading tone resolution and authentic cadences. Uses weighted scoring to balance multiple factors, with special handling for outer voices and cadential patterns.
 
 **Dependencies:**
-* `./core`: For pitch manipulation functions and music theory constants.
-* `./melodic-state`: For melodic contour tracking and scoring.
+* `./core`: For pitch manipulation functions and music theory constants
+* `./melodic-state`: For melodic contour tracking and leading tone resolution scoring
 
 **Constraints/Assumptions:**
-* Assumes Western classical voice leading principles.
-* Works with pitch-specific notation (e.g., "C2").
-* Designed for small-scale chord progressions (not large-scale forms).
+* Assumes Western classical voice leading principles
+* Works with pitch-specific notation (e.g., "C2")
+* Designed for small-scale chord progressions (not large-scale forms)
+* Prioritizes proper leading tone treatment in dominant-tonic relationships
 
 **Non-Responsibilities/Limitations:**
-* Does not apply corrections to voice leading—only analyzes and scores.
-* Does not manage progression construction or inversions directly.
-* Not responsible for key detection or modulation analysis.
-* No explicit handling of non-diatonic harmony or extended jazz voicings.
-* Does not enforce voice ranges or perfect voice distribution.
+* Does not apply corrections to voice leading—only analyzes and scores
+* Does not manage progression construction or inversions directly
+* Not responsible for key detection or modulation analysis
+* No explicit handling of non-diatonic harmony or extended jazz voicings
+* Does not enforce voice ranges or perfect voice distribution
 \
 ---\
 \
@@ -297,3 +315,38 @@
 * Does not analyze secondary melodic lines or counterpoint between voices.
 * Not designed for complex melodic analysis beyond progression-level considerations.
 * No awareness of scale degrees or key context (works with absolute pitches).
+\
+---\
+\
+### cadential-patterns.js
+
+**Purpose:** Provides a library of pre-defined cadential patterns for different musical modes, enables contextual suggestion of appropriate cadence types, and handles the intelligent application of cadences to chord progressions while maintaining musical variety.
+
+**Inputs:**
+* `mode`: String—name of the musical mode (e.g., 'ionian', 'phrygian')
+* `patternType`: String—type of cadence to apply (e.g., 'authentic', 'plagal', 'deceptive')
+* `progression`: Array of Strings—Roman numeral chord progression to modify with cadence
+* `romanNumeral`: String—Roman numeral chord symbol to analyze for leading tone content
+
+**Outputs:**
+* `getCadentialPattern`: Array—sequence of Roman numerals representing the specified cadence pattern
+* `applyCadentialPattern`: Array—modified progression with cadential pattern applied to the end
+* `suggestCadentialPattern`: String—recommended cadence type based on current progression context
+* `hasLeadingTone`: Boolean—whether a given chord contains the leading tone of the scale
+
+**Behavior/Algorithm:** Maintains a comprehensive library of mode-specific cadential patterns based on classical music theory. Analyzes existing progressions to suggest contextually appropriate cadences. Intelligently applies cadences with probabilistic variation to maintain musical interest while respecting authentic voice leading principles. Recognizes when a progression already has a valid cadence and can preserve it instead of enforcing a new pattern. Provides mode-specific treatment of leading tones, with special handling for modes without traditional leading tones (e.g., mixolydian).
+
+**Dependencies:**
+* None—self-contained with music theory constants built into the module
+
+**Constraints/Assumptions:**
+* Assumes Roman numeral notation for chord representation
+* Works with both major-based modes (ionian, lydian, mixolydian) and minor-based modes (dorian, phrygian, aeolian, locrian)
+* Prioritizes authentic cadences (V-I or V-i) as the default cadential pattern
+* Provides mode-specific variations to respect the distinctive characteristics of each mode
+
+**Non-Responsibilities/Limitations:**
+* Does not generate full progressions—only applies cadential patterns to existing progressions
+* Not responsible for voice leading or inversion—only handles Roman numeral symbols
+* Does not convert Roman numerals to actual chord symbols or notes
+* Not responsible for chord extensions (sevenths, ninths)—focuses on core cadential movement
