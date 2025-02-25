@@ -339,6 +339,45 @@
 **Dependencies:**
 * `../lib/midi-export`: For MIDI file generation and download
 
+### ChordTheoryDisplay.jsx
+
+**Purpose:** Displays detailed music theory information about a chord within its musical context.
+
+**Inputs:**
+* `progression` (Array) — The complete chord progression
+* `index` (Number) — The index of the current chord in the progression
+* `chord` (Object) — Chord object with root, quality, bass, and notes properties
+* `keyCenter` (String) — The key of the progression (e.g., "C")
+* `mode` (String) — The mode name (e.g., "ionian", "dorian")
+
+**Outputs:** 
+* Rendered component displaying formatted chord symbol, chord function, borrowed chord information, and voice leading features
+
+**Behavior:** Analyzes a chord in its musical context to determine its function, whether it's borrowed from another mode, and any voice leading characteristics. Uses music theory principles to provide accurate and meaningful information about each chord.
+
+**Dependencies:**
+* `../lib/core`: For access to `NOTES` and other music theory constants
+
+### EnhancedProgressionDisplay.jsx
+
+**Purpose:** Displays a complete chord progression with toggleable music theory analysis, including cadence identification between chord pairs.
+
+**Inputs:**
+* `progression` (Array) — Chord progression to display
+* `keyCenter` (String) — The key of the progression (e.g., "C")
+* `mode` (String) — The mode name (e.g., "ionian", "dorian")
+* `activeIndex` (Number, optional) — Currently active chord index for highlighting
+
+**Outputs:** 
+* Rendered component with fully formatted chord progression, music theory information, and cadence analysis
+
+**Behavior:** Renders a chord progression with toggleable music theory information. Provides chord function analysis and cadence identification at phrase endings. Focuses on proper musicological analysis, correctly identifying cadences only at appropriate phrase endings.
+
+**Dependencies:**
+* `../lib/core`: For access to `NOTES` and other music theory constants
+* `./ChordTheoryDisplay`: For individual chord analysis
+* `./EnhancedProgressionStyles.css`: For styling
+
 ## Global Utilities
 
 ### core.js
