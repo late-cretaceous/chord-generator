@@ -1,0 +1,82 @@
+flowchart TD
+    subgraph UI_Components["UI Components"]
+        App["App.jsx"]
+        ChordGen["ChordGenerator.jsx"]
+        ProgPlayer["ProgressionPlayer.jsx"]
+        SynthCtrls["SynthControls.jsx"]
+        MidiBtn["MidiExportButton.jsx"]
+    end
+    
+    subgraph High_Level["High-Level Coordinator"]
+        logic["logic.js"]
+    end
+    
+    subgraph Domain_Managers["Domain Managers"]
+        progression["progression-generator.js"]
+        structural["structural-progression.js"]
+        voicing["voicing.js"]
+        audio["audio.js"]
+    end
+    
+    subgraph Domain_Utilities["Domain Utilities"]
+        chordExt["chord-extensions.js"]
+        harmRhythm["harmonic-rhythm.js"]
+        progPatterns["progression-patterns.js"]
+        voiceAnalysis["voice-leading-analysis.js"]
+        melodicState["melodic-state.js"]
+        cadential["cadential-patterns.js"]
+        synthEngine["SynthEngine.js"]
+        presets["presets.js"]
+        midiExport["midi-export.js"]
+    end
+    
+    subgraph Global_Utilities["Global Utilities"]
+        core["core.js"]
+    end
+    
+    %% UI Component Relationships
+    App --> ChordGen
+    ChordGen --> ProgPlayer
+    ProgPlayer --> SynthCtrls
+    ProgPlayer --> MidiBtn
+    
+    %% High-level connections
+    ChordGen --> logic
+    ProgPlayer --> audio
+    MidiBtn --> midiExport
+    
+    %% High-Level Coordinator to Domain Managers
+    logic --> progression
+    logic --> structural
+    logic --> voicing
+    
+    %% Domain Manager to Utility Relationships
+    progression --> chordExt
+    progression --> cadential
+    structural --> harmRhythm
+    structural --> progPatterns
+    voicing --> voiceAnalysis
+    voicing --> melodicState
+    voicing --> cadential
+    audio --> synthEngine
+    synthEngine --> presets
+    
+    %% Core connections
+    core -.-> logic
+    core -.-> progression
+    core -.-> voicing
+    core -.-> audio
+    core -.-> midiExport
+    
+    %% Styling
+    classDef uiComponent fill:#ffd,stroke:#333
+    classDef highLevel fill:#f9a,stroke:#333
+    classDef domainManager fill:#adf,stroke:#333
+    classDef utility fill:#dfd,stroke:#333
+    classDef globalUtility fill:#fdf,stroke:#333
+    
+    class App,ChordGen,ProgPlayer,SynthCtrls,MidiBtn uiComponent
+    class logic highLevel
+    class progression,structural,voicing,audio domainManager
+    class chordExt,harmRhythm,progPatterns,voiceAnalysis,melodicState,cadential,synthEngine,presets,midiExport utility
+    class core globalUtility
