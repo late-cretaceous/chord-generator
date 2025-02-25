@@ -9,6 +9,12 @@
 import { SynthEngine } from "./synth/SynthEngine";
 import { NOTES } from "./core";
 
+/**
+ * Converts a note string to frequency in Hz
+ * Uses the formula f = 440 * 2^((n-69)/12) where n is MIDI note number
+ * @param {string} noteWithOctave - Note in format like "C4"
+ * @returns {number|null} Frequency in Hz or null if invalid
+ */
 function noteToFrequency(noteWithOctave) {
   const match = noteWithOctave.match(/([A-G][#]?)([0-9])/);
   if (!match) return null;
@@ -22,13 +28,15 @@ function noteToFrequency(noteWithOctave) {
   return frequency;
 }
 
+/**
+ * Audio Engine class that manages sound generation and playback
+ */
 class AudioEngine {
   constructor() {
     this.audioContext = null;
     this.synthEngine = null;
     this.isPlaying = false;
     this.currentChordIndex = 0;
-    this.playbackInterval = null;
     this.scheduledChords = [];
     this.nextNoteTime = 0;
     this.scheduleAheadTime = 0.2; // Schedule 200ms ahead
@@ -36,29 +44,105 @@ class AudioEngine {
     this.lookaheadTimer = null;
   }
 
+  /**
+   * Initialize audio context and synth engine
+   */
   init() {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext ||
         window.webkitAudioContext)();
       this.synthEngine = new SynthEngine(this.audioContext);
     }
+    
+    // Resume context if suspended (browser autoplay policy)
+    if (this.audioContext.state === "suspended") {
+      this.audioContext.resume();
+    }
   }
 
-  playChord(pitches, playFullChord = false, duration = 0.8) {
+  /**
+   * Play a chord with improved voice handling
+   * @param {Array} pitches - Array of note strings (e.g. ["C3", "E3", "G3"])
+   * @param {boolean} playFullChord - Whether to play full chord or just bass note
+   * @param {number} velocity - Volume level (0-1)
+   */
+  playChord(pitches, playFullChord = false, velocity = 0.3) {
     if (!this.audioContext) this.init();
+    
+    // Make sure audio context is running
+    if (this.audioContext.state === "suspended") {
+      this.audioContext.resume();
+    }
+    
+    // First stop any currently playing notes
+    this.synthEngine.stopAllNotes();
+    
+    // Determine which notes to play
     const notesToPlay = playFullChord ? pitches : [pitches[0]];
-    notesToPlay.forEach((pitch, index) => {
-      const frequency = noteToFrequency(pitch);
-      if (frequency) {
-        this.synthEngine.playNote(frequency);
-      }
+    
+    // Sort notes by pitch for better analysis
+    const sortedNotes = [...notesToPlay].sort((a, b) => {
+      const aMatch = a.match(/([A-G][#]?)([0-9])/);
+      const bMatch = b.match(/([A-G][#]?)([0-9])/);
+      if (!aMatch || !bMatch) return 0;
+      
+      const aOctave = parseInt(aMatch[2]);
+      const bOctave = parseInt(bMatch[2]);
+      
+      // First compare octaves
+      if (aOctave !== bOctave) return aOctave - bOctave;
+      
+      // Then compare notes within octave
+      const aNote = aMatch[1];
+      const bNote = bMatch[1];
+      return NOTES.indexOf(aNote) - NOTES.indexOf(bNote);
     });
+    
+    // Convert notes to frequencies
+    const frequencies = sortedNotes
+      .map(pitch => noteToFrequency(pitch))
+      .filter(freq => freq !== null);
+    
+    if (frequencies.length === 0) return;
+    
+    // If playing full chord, use specialized method
+    if (playFullChord && frequencies.length > 1) {
+      // Play chord with specialized treatment
+      this.playVoicedChord(frequencies, sortedNotes);
+    } else {
+      // Just play individual notes (usually just the bass note)
+      frequencies.forEach(frequency => {
+        this.synthEngine.playNote(frequency);
+      });
+    }
+  }
+  
+  /**
+   * Play a chord with optimized voice balance
+   * @param {Array} frequencies - Frequencies to play
+   * @param {Array} originalNotes - Original note strings for reference
+   */
+  playVoicedChord(frequencies, originalNotes) {
+    if (!frequencies || frequencies.length === 0) return;
+    
+    // Get the bass note (lowest frequency)
+    const bassFreq = frequencies[0];
+    
+    // First play the bass with slight emphasis and delay
+    this.synthEngine.playNote(bassFreq, true);
+    
+    // Play upper voices with staggered timing for clarity
+    // This creates a subtle arpeggio effect that helps distinguish voices
+    for (let i = 1; i < frequencies.length; i++) {
+      const delay = i * 8; // 8ms delay per voice
+      setTimeout(() => {
+        this.synthEngine.playNote(frequencies[i], false);
+      }, delay);
+    }
   }
 
   /**
    * Starts progression playback with support for variable chord durations
-   * @domain Audio
-   * @calledBy UI components or other domain managers
    * @param {Array} chords - Array of chord objects with notes and durations
    * @param {boolean} playFullChords - Whether to play full chords or just bass notes
    * @param {number} tempo - Tempo in BPM
@@ -66,7 +150,11 @@ class AudioEngine {
   startProgressionPlayback(chords, playFullChords = false, tempo = 120) {
     if (!this.audioContext) this.init();
     this.stopProgressionPlayback();
-    if (this.audioContext.state === "suspended") this.audioContext.resume();
+    
+    // Resume audio context if needed
+    if (this.audioContext.state === "suspended") {
+      this.audioContext.resume();
+    }
 
     this.isPlaying = true;
     this.currentChordIndex = 0;
@@ -84,7 +172,6 @@ class AudioEngine {
       return {
         notes: notesToPlay,
         duration: duration,
-        isDrum: false,
         playFullChord: playFullChords
       };
     });
@@ -100,7 +187,6 @@ class AudioEngine {
   
   /**
    * Schedules chord playback using a lookahead scheduler for timing accuracy
-   * @domain Audio
    * @private Internal method
    */
   startScheduler() {
@@ -115,7 +201,6 @@ class AudioEngine {
   
   /**
    * Schedules upcoming chords for playback
-   * @domain Audio
    * @private Internal method
    */
   scheduleChords() {
@@ -146,10 +231,9 @@ class AudioEngine {
   
   /**
    * Schedules a single chord for playback at a specific time
-   * @domain Audio
-   * @private Internal method
    * @param {Object} chord - Chord to schedule
    * @param {number} time - Audiocontext time to schedule the chord
+   * @private Internal method
    */
   scheduleChord(chord, time) {
     // Keep track of scheduled chords for potential cancellation
@@ -167,23 +251,15 @@ class AudioEngine {
     setTimeout(() => {
       if (!this.isPlaying) return;
       
-      // Stop any currently playing notes
-      this.synthEngine.stopAllNotes();
+      // Play the chord using the improved method
+      this.playChord(chord.notes, chord.playFullChord);
       
-      // Play the chord
-      chord.notes.forEach(pitch => {
-        const frequency = noteToFrequency(pitch);
-        if (frequency) {
-          this.synthEngine.playNote(frequency);
-        }
-      });
     }, Math.max(0, timeUntilChord));
   }
 
   /**
    * Stops the progression playback
-   * @domain Audio
-   * @calledBy UI components or other domain managers
+   * @public Method for UI components
    */
   stopProgressionPlayback() {
     this.isPlaying = false;
@@ -198,9 +274,8 @@ class AudioEngine {
 
   /**
    * Sets the synth preset
-   * @domain Audio
-   * @calledBy UI components or other domain managers
    * @param {string} preset - Preset name to use
+   * @public Method for UI components
    */
   setPreset(preset) {
     if (this.synthEngine) this.synthEngine.setPreset(preset);
@@ -208,8 +283,7 @@ class AudioEngine {
 
   /**
    * Disposes of audio resources
-   * @domain Audio
-   * @calledBy UI components or other domain managers
+   * @public Method for cleanup
    */
   dispose() {
     this.stopProgressionPlayback();
@@ -219,4 +293,5 @@ class AudioEngine {
   }
 }
 
+// Export a singleton instance
 export const audioEngine = new AudioEngine();
