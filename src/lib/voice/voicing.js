@@ -1,4 +1,4 @@
-// lib/voicing.js
+// lib/voice/voicing.js
 import { NOTES, pitchToMidi, midiToPitch } from '../core';
 import { resetMelodicState } from './melodic-state';
 import { 
@@ -230,36 +230,6 @@ export function formatInversionSymbol(root, quality, bassNote) {
 }
 
 /**
- * Optimize leading tone treatment in a progression
- * @param {Array} progression - Array of chord objects
- * @param {string} key - Key center (tonic)
- * @param {string} modeName - Name of the mode
- * @returns {Array} Progression with optimized leading tones
- */
-function optimizeLeadingTones(progression, key, modeName) {
-    if (!progression || progression.length < 2) return progression;
-    
-    const result = [];
-    
-    for (let i = 0; i < progression.length; i++) {
-        const currentChord = progression[i];
-        const isNearEnd = i >= progression.length - 2;
-        const nextChord = i < progression.length - 1 ? progression[i + 1] : null;
-        
-        // Apply leading tone optimization for dominant chords at cadence points
-        // But only with 70% probability to maintain variety
-        if (isNearEnd && nextChord && hasLeadingTone(currentChord, nextChord.root) && Math.random() < 0.7) {
-            const optimizedChord = optimizeLeadingToneVoicing(currentChord, nextChord.root);
-            result.push(optimizedChord);
-        } else {
-            result.push(currentChord);
-        }
-    }
-    
-    return result;
-}
-
-/**
  * Apply cadential patterns to Roman numeral progressions
  * @param {Array} romanNumerals - Array of Roman numeral chord symbols
  * @param {string} modeName - Name of the mode
@@ -290,6 +260,35 @@ export function applyCadentialPatterns(romanNumerals, modeName, cadenceType = nu
 }
 
 /**
+ * Optimize leading tone treatment in a progression
+ * @param {Array} progression - Array of chord objects
+ * @param {string} key - Key center (tonic)
+ * @returns {Array} Progression with optimized leading tones
+ */
+export function optimizeLeadingTones(progression, key) {
+    if (!progression || progression.length < 2) return progression;
+    
+    const result = [];
+    
+    for (let i = 0; i < progression.length; i++) {
+        const currentChord = progression[i];
+        const isNearEnd = i >= progression.length - 2;
+        const nextChord = i < progression.length - 1 ? progression[i + 1] : null;
+        
+        // Apply leading tone optimization for dominant chords at cadence points
+        // But only with 70% probability to maintain variety
+        if (isNearEnd && nextChord && hasLeadingTone(currentChord, nextChord.root) && Math.random() < 0.7) {
+            const optimizedChord = optimizeLeadingToneVoicing(currentChord, nextChord.root);
+            result.push(optimizedChord);
+        } else {
+            result.push(currentChord);
+        }
+    }
+    
+    return result;
+}
+
+/**
  * Apply all voice-related optimizations to a progression
  * @param {Array} progression - Array of chord objects
  * @param {string} key - Key center (tonic)
@@ -301,7 +300,7 @@ export function optimizeVoiceLeading(progression, key, modeName, useInversions =
     if (!progression || progression.length === 0) return progression;
     
     // First optimize leading tones
-    const ltOptimized = optimizeLeadingTones(progression, key, modeName);
+    const ltOptimized = optimizeLeadingTones(progression, key);
     
     // Then apply inversions if requested
     if (useInversions) {

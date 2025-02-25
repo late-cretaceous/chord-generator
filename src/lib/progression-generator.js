@@ -1,5 +1,8 @@
 // lib/progression-generator.js
 import { MODES } from './modes';
+import { romanToChordSymbols, getNotesFromChordSymbol, parseChordSymbol } from './core';
+import { applyChordExtensions } from './chord-extensions';
+import { applyCadentialPattern, suggestCadentialPattern } from './voice/cadential-patterns';
 
 /**
  * Gets the tonic chord Roman numeral based on the mode
@@ -268,4 +271,65 @@ export function generateChordProgressionWithCadence(length = 4, mode = MODES.ion
 export function generateChordProgression(length = 4, mode = MODES.ionian) {
     // Use the enhanced cadence-aware generator
     return generateChordProgressionWithCadence(length, mode);
+}
+
+/**
+ * NEW FUNCTION: Enhances a progression with proper chord extensions and cadential patterns
+ * @param {Object} options - Progression options
+ * @returns {Array} Chord objects with notes
+ */
+export function enhanceProgressionWithExtensions(options) {
+    const {
+        length = 4,
+        key = 'C',
+        mode = MODES.ionian,
+        useExtendedChords = 'none',
+        rootOctave = 2,
+        cadenceType = null,
+        strictCadence = false,
+        pattern = null,
+        useStructuralPattern = false
+    } = options;
+    
+    // Generate base Roman numeral progression
+    let romanNumerals = generateChordProgression(length, mode, {
+        pattern, 
+        useStructuralPattern
+    });
+    
+    // Apply cadential patterns if needed
+    if (strictCadence && cadenceType) {
+        // Strict enforcement of specified cadence
+        romanNumerals = applyCadentialPattern(romanNumerals, mode.name, cadenceType);
+    } else if (cadenceType) {
+        // Apply specified cadence with 50% probability
+        if (Math.random() < 0.5) {
+            romanNumerals = applyCadentialPattern(romanNumerals, mode.name, cadenceType);
+        }
+    } else if (Math.random() < 0.4) {
+        // 40% chance to apply a suggested cadence for more variety
+        const suggestedCadence = suggestCadentialPattern(romanNumerals, mode.name);
+        romanNumerals = applyCadentialPattern(romanNumerals, mode.name, suggestedCadence);
+    }
+    
+    // Apply chord extensions to Roman numerals
+    const enhancedRomanNumerals = applyChordExtensions(romanNumerals, mode, useExtendedChords);
+    
+    // Convert to chord symbols
+    const chordSymbols = romanToChordSymbols(enhancedRomanNumerals, key, mode);
+    
+    // Generate actual chord objects with notes
+    const progression = chordSymbols.map(symbol => {
+        const parsed = parseChordSymbol(symbol);
+        if (!parsed) return { root: symbol, quality: '', bass: `${symbol}${rootOctave}`, notes: [symbol] };
+        const notes = getNotesFromChordSymbol(symbol, rootOctave);
+        return {
+            root: parsed.root,
+            quality: parsed.quality,
+            bass: notes[0],
+            notes
+        };
+    });
+    
+    return progression;
 }

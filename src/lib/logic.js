@@ -1,12 +1,9 @@
 // lib/logic.js
 import { MODES } from './modes';
-import { calculateModalRoot, romanToChordSymbols, getNotesFromChordSymbol, parseChordSymbol } from './core';
-import { applyProgressionInversions } from './voice/voicing';
-import { generateChordProgression } from './progression-generator';
-import { applyChordExtensions } from './chord-extensions';
-import { applyCadentialPattern, suggestCadentialPattern } from './voice/cadential-patterns';
-import { enhanceProgressionStructure, generateStructuralProgression } from './structure/structural-progression.js';
-import { optimizeLeadingToneVoicing, hasLeadingTone } from './voice/voice-leading-analysis';
+import { calculateModalRoot } from './core';
+import { generateChordProgression, enhanceProgressionWithExtensions } from './progression-generator';
+import { applyProgressionInversions, optimizeVoiceLeading } from './voice/voicing';
+import { enhanceProgressionStructure } from './structure/structural-progression.js';
 
 /**
  * Generates a chord progression with optional extended chord types,
@@ -54,65 +51,22 @@ export function generateProgression(
         useStructuralPattern: useStructuralPattern
     };
     
-    // Generate base Roman numeral progression
-    let romanNumerals = generateChordProgression(length, mode, progressionOptions);
-    
-    // Add variety to cadence handling
-    if (strictCadence && cadenceType) {
-        // Strict enforcement of specified cadence
-        romanNumerals = applyCadentialPattern(romanNumerals, modeName, cadenceType);
-    } else if (cadenceType) {
-        // Apply specified cadence with 50% probability
-        if (Math.random() < 0.5) {
-            romanNumerals = applyCadentialPattern(romanNumerals, modeName, cadenceType);
-        }
-    } else if (Math.random() < 0.4) {
-        // 40% chance to apply a suggested cadence for more variety
-        const suggestedCadence = suggestCadentialPattern(romanNumerals, modeName);
-        romanNumerals = applyCadentialPattern(romanNumerals, modeName, suggestedCadence);
-    }
-    
-    // Apply chord extensions to Roman numerals
-    const enhancedRomanNumerals = applyChordExtensions(romanNumerals, mode, useExtendedChords);
-    
-    // Convert to chord symbols
-    const chordSymbols = romanToChordSymbols(enhancedRomanNumerals, modalRoot, mode);
-    
-    // Generate actual chord objects with notes
-    const progression = chordSymbols.map(symbol => {
-        const parsed = parseChordSymbol(symbol);
-        if (!parsed) return { root: symbol, quality: '', bass: `${symbol}${rootOctave}`, notes: [symbol] };
-        const notes = getNotesFromChordSymbol(symbol, rootOctave);
-        return {
-            root: parsed.root,
-            quality: parsed.suffix,
-            bass: notes[0],
-            notes
-        };
+    // Generate chord progression with appropriate extensions through domain manager
+    const progression = enhanceProgressionWithExtensions({
+        length,
+        key: modalRoot,
+        mode,
+        useExtendedChords,
+        rootOctave,
+        cadenceType,
+        strictCadence,
+        ...progressionOptions
     });
-
-    // Apply leading tone optimization (only at cadence points and only sometimes)
-    const optimizedProgression = [];
     
-    for (let i = 0; i < progression.length; i++) {
-        const currentChord = progression[i];
-        const isNearEnd = i >= progression.length - 2;
-        const nextChord = i < progression.length - 1 ? progression[i + 1] : null;
-        
-        // Apply leading tone optimization for dominant chords at cadence points
-        // But only with 70% probability to maintain variety
-        if (isNearEnd && nextChord && hasLeadingTone(currentChord, nextChord.root) && Math.random() < 0.7) {
-            const optimizedChord = optimizeLeadingToneVoicing(currentChord, nextChord.root);
-            optimizedProgression.push(optimizedChord);
-        } else {
-            optimizedProgression.push(currentChord);
-        }
-    }
-    
-    // Apply inversions if requested
+    // Apply voice leading optimizations through the Voice domain manager
     const voicedProgression = useInversions ? 
-        applyProgressionInversions(optimizedProgression, modalRoot) : 
-        optimizedProgression;
+        optimizeVoiceLeading(progression, modalRoot, modeName, useInversions) : 
+        progression;
     
     // Apply harmonic rhythm variations through the structural domain manager
     const structuralOptions2 = { rhythmPattern, totalBeats };

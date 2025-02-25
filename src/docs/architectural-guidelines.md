@@ -1,4 +1,4 @@
-# Architectural Guidelines for Chord Progression Generator
+# Updated Architectural Guidelines for Chord Progression Generator
 
 This document outlines the architectural principles and separation of concerns to be followed throughout the development of the Chord Progression Generator application.
 
@@ -17,7 +17,7 @@ The application follows a strict hierarchical structure with clearly defined com
   - Should not implement domain-specific logic directly
 
 ### 2. Domain Managers
-*Examples: `voicing.js`, `audio.js`, `structural-progression.js`*
+*Examples: `voicing.js`, `audio.js`, `progression-generator.js`*
 
 - Serve as the ONLY entry point to their domain's functionality
 - Coordinate operations between their domain's utility modules
@@ -37,6 +37,19 @@ The application follows a strict hierarchical structure with clearly defined com
   - Must be accessed through their parent domain manager
   - Should focus on a single responsibility
   - May only call other utilities within the same domain
+
+### 4. Global Utilities
+*Example: `core.js`*
+
+- Provide foundational constants and functions used across multiple domains
+- Implement common, fundamental operations needed broadly throughout the application
+- **Rules**:
+  - May be imported by both high-level coordinators and domain managers
+  - Should focus on pure, stateless functions without domain-specific logic
+  - Should not depend on any domain-specific modules
+  - Should be truly foundational to warrant global access
+
+> **Important**: `core.js` is the only designated global utility in the current architecture. All other utilities must adhere to the domain-specific utility rules above.
 
 ## Domain Boundaries
 
@@ -78,15 +91,19 @@ The application follows a strict hierarchical structure with clearly defined com
 High-Level Coordinator
 └── logic.js
     ├── progression-generator.js (domain manager)
-    │   └── cadential-patterns.js (utility)
+    │   └── chord-extensions.js (utility)
     ├── structural-progression.js (domain manager)
     │   ├── harmonic-rhythm.js (utility)
     │   └── progression-patterns.js (utility)
     ├── voicing.js (domain manager)
     │   ├── voice-leading-analysis.js (utility)
-    │   └── melodic-state.js (utility)
+    │   ├── melodic-state.js (utility)
+    │   └── cadential-patterns.js (utility)
     └── audio.js (domain manager)
         └── SynthEngine.js (utility)
+
+Global Utilities
+└── core.js (accessible to all domains)
 ```
 
 ## Data Flow Principles
@@ -127,6 +144,21 @@ If you encounter any of these patterns, refactor immediately:
    - ❌ `voice-leading-analysis.js` imports from `voicing.js`
    - ✅ Both modules import from utility modules or core constants
 
+7. **Global Utility Proliferation**: Making multiple domain-specific utilities global
+   - ❌ Making `chord-extensions.js` a global utility accessible everywhere
+   - ✅ Keeping `chord-extensions.js` as a domain-specific utility accessed through its domain manager
+
+## Special Note on core.js
+
+Unlike other utilities, `core.js` serves as a global utility and may be imported by both high-level coordinators and domain managers. This exception is justified because:
+
+1. It provides truly foundational music theory constants and functions needed across domains
+2. It has no dependencies on other modules
+3. Its functions are pure and stateless
+4. It contains no domain-specific logic
+
+Even with this exception, be judicious in what functionality goes into `core.js`. If a function is specific to a particular domain, it should be placed in a domain-specific utility.
+
 ## Code Style for Maintaining Separation
 
 1. **Import Organization**: Group imports by domain for clarity
@@ -134,8 +166,11 @@ If you encounter any of these patterns, refactor immediately:
    // High-level coordinators
    import { generateProgression } from './logic';
    
+   // Global utilities
+   import { NOTES, pitchToMidi } from './core';
+   
    // Domain managers - only these should be imported from other domains
-   import { optimizeVoiceLeading } from './voicing';
+   import { optimizeVoiceLeading } from './voice/voicing';
    import { enhanceProgressionStructure } from './structural-progression';
    import { playProgression } from './audio';
    
@@ -189,6 +224,7 @@ Before submitting changes, verify:
 - [ ] All imports follow the hierarchical structure (coordinators → domain managers → utilities)
 - [ ] Updated module specifications reflect any functional changes
 - [ ] Appropriate domain manager created for new functionality domains
+- [ ] Careful use of `core.js` — only truly global functionality belongs there
 
 ## Maintenance and Evolution
 
