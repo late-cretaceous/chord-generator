@@ -17,7 +17,7 @@ The application follows a strict hierarchical structure with clearly defined com
   - Should not implement domain-specific logic directly
 
 ### 2. Domain Managers
-*Examples: `voicing.js`, `audio.js`*
+*Examples: `voicing.js`, `audio.js`, `structural-progression.js`*
 
 - Serve as the ONLY entry point to their domain's functionality
 - Coordinate operations between their domain's utility modules
@@ -28,7 +28,7 @@ The application follows a strict hierarchical structure with clearly defined com
   - Must validate inputs and handle errors within their domain
 
 ### 3. Utility Modules
-*Examples: `voice-leading-analysis.js`, `cadential-patterns.js`*
+*Examples: `voice-leading-analysis.js`, `harmonic-rhythm.js`, `progression-patterns.js`*
 
 - Provide specialized services within a specific domain
 - Implement core algorithms and business logic
@@ -46,6 +46,12 @@ The application follows a strict hierarchical structure with clearly defined com
 - Progression structure and length
 - Overall progression flow
 - Chord extensions
+
+### Structural Domain (`structural-progression.js`)
+- Harmonic rhythm management (`harmonic-rhythm.js`)
+- Harmonic patterns and sequences (`progression-patterns.js`)
+- Duration normalization and application
+- Pattern-based progression generation
 
 ### Voice Domain (`voicing.js`)
 - Cadential patterns (`cadential-patterns.js`)
@@ -66,6 +72,23 @@ The application follows a strict hierarchical structure with clearly defined com
 - User interaction handling
 - Visual representation of musical concepts
 
+## Updated Domain Relationship Diagram
+
+```
+High-Level Coordinator
+└── logic.js
+    ├── progression-generator.js (domain manager)
+    │   └── cadential-patterns.js (utility)
+    ├── structural-progression.js (domain manager)
+    │   ├── harmonic-rhythm.js (utility)
+    │   └── progression-patterns.js (utility)
+    ├── voicing.js (domain manager)
+    │   ├── voice-leading-analysis.js (utility)
+    │   └── melodic-state.js (utility)
+    └── audio.js (domain manager)
+        └── SynthEngine.js (utility)
+```
+
 ## Data Flow Principles
 
 1. **Hierarchical Flow**: Data should flow down from coordinators to domain managers to utilities, and results should flow back up through the same path.
@@ -81,22 +104,26 @@ The application follows a strict hierarchical structure with clearly defined com
 If you encounter any of these patterns, refactor immediately:
 
 1. **Domain Bypassing**: A high-level module imports a utility module from another domain
-   - ❌ `logic.js` imports `voice-leading-analysis.js`
-   - ✅ `logic.js` calls `voicing.js` which uses `voice-leading-analysis.js`
+   - ❌ `logic.js` imports `harmonic-rhythm.js`
+   - ✅ `logic.js` calls `structural-progression.js` which uses `harmonic-rhythm.js`
 
-2. **Functionality Duplication**: Similar functionality implemented in multiple places
-   - ❌ Leading tone optimization in both `logic.js` and `voicing.js`
-   - ✅ Leading tone optimization only in `voicing.js`
+2. **Cross-domain Utility Access**: A utility module from one domain accessed by another domain
+   - ❌ `voice-leading-analysis.js` used directly by `structural-progression.js`
+   - ✅ `structural-progression.js` communicates with `voicing.js` which then uses `voice-leading-analysis.js`
 
-3. **Utility Exposure**: A domain's internal utilities are exposed to outside modules
-   - ❌ Exporting `analyzeLeadingTone()` for use outside the voice domain
-   - ✅ Encapsulating leading tone analysis within the voice domain
+3. **Functionality Duplication**: Similar functionality implemented in multiple places
+   - ❌ Rhythm application logic in both `logic.js` and `structural-progression.js`
+   - ✅ Rhythm application logic only in `structural-progression.js`
 
-4. **Responsibility Leakage**: A high-level module manages low-level details
-   - ❌ `logic.js` handling leading tone placement
-   - ✅ `logic.js` delegating ALL voice concerns to `voicing.js`
+4. **Utility Exposure**: A domain's internal utilities are exposed to outside modules
+   - ❌ Exporting `createRhythmPattern()` for use outside the structural domain
+   - ✅ Encapsulating rhythm pattern creation within the structural domain
 
-5. **Circular Dependencies**: Modules depending on each other directly or indirectly
+5. **Responsibility Leakage**: A high-level module manages low-level details
+   - ❌ `logic.js` handling harmonic rhythm calculations
+   - ✅ `logic.js` delegating ALL structural concerns to `structural-progression.js`
+
+6. **Circular Dependencies**: Modules depending on each other directly or indirectly
    - ❌ `voice-leading-analysis.js` imports from `voicing.js`
    - ✅ Both modules import from utility modules or core constants
 
@@ -109,6 +136,7 @@ If you encounter any of these patterns, refactor immediately:
    
    // Domain managers - only these should be imported from other domains
    import { optimizeVoiceLeading } from './voicing';
+   import { enhanceProgressionStructure } from './structural-progression';
    import { playProgression } from './audio';
    
    // Domain-internal utilities - never import these across domains
@@ -132,10 +160,10 @@ If you encounter any of these patterns, refactor immediately:
 3. **Module Headers**: Include domain and responsibility annotations
    ```javascript
    /**
-    * @module voice-leading-analysis
-    * @domain Voice
-    * @responsibility Analyzes voice leading quality between chords
-    * @private Should only be used by voicing.js
+    * @module harmonic-rhythm
+    * @domain Progression.Structural
+    * @responsibility Manages harmonic rhythm patterns and duration assignments
+    * @private Should only be used by structural-progression.js
     */
    ```
 
@@ -158,7 +186,9 @@ Before submitting changes, verify:
 - [ ] No duplicate implementations of the same functionality
 - [ ] Clear input/output contracts for all new functions
 - [ ] Consistent parameter and return value structures
+- [ ] All imports follow the hierarchical structure (coordinators → domain managers → utilities)
 - [ ] Updated module specifications reflect any functional changes
+- [ ] Appropriate domain manager created for new functionality domains
 
 ## Maintenance and Evolution
 
@@ -168,3 +198,44 @@ As the application evolves:
 2. Ensure new modules fit within the existing domain structure
 3. Consider refactoring if domains become too large or responsibilities blur
 4. Maintain backward compatibility at domain boundaries when possible
+5. Create new domain managers for distinct areas of functionality rather than expanding existing ones
+
+## Example: Adding New Functionality
+
+### ❌ Incorrect Approach
+```javascript
+// In logic.js (High-level coordinator)
+import { createRhythmPattern } from './harmonic-rhythm';
+
+export function generateProgression() {
+  // Generate progression
+  const rhythm = createRhythmPattern(4, 'waltz');
+  // Apply rhythm directly in logic.js
+}
+```
+
+### ✅ Correct Approach
+```javascript
+// In logic.js (High-level coordinator)
+import { enhanceProgressionStructure } from './structural-progression';
+
+export function generateProgression() {
+  // Generate progression
+  
+  // Use the domain manager for structural features
+  return enhanceProgressionStructure(progression, { 
+    rhythmPattern: 'waltz' 
+  });
+}
+
+// In structural-progression.js (Domain manager)
+import { createRhythmPattern } from './harmonic-rhythm';
+
+export function enhanceProgressionStructure(progression, options) {
+  // Delegate to utility module for implementation details
+  const rhythm = createRhythmPattern(progression.length, options.rhythmPattern);
+  // Apply rhythm and return
+}
+```
+
+This ensures that the high-level coordinator (`logic.js`) never directly accesses utility modules, maintaining proper separation of concerns and clear domain boundaries.

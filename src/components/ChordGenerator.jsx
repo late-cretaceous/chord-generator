@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { generateProgression } from '../lib/logic';
+import { generateProgression, generateStructuredProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
 import { NOTES, getQualitySymbol } from '../lib/core';
+import { getAvailableRhythmPatterns, getAvailableHarmonicPatterns } from '../lib/structural-progression';
 import ProgressionPlayer from './ProgressionPlayer';
 import './ChordGenerator.css';
 
@@ -13,6 +14,16 @@ const ChordGenerator = () => {
     const [useInversions, setUseInversions] = useState(true);
     const [chordExtensionLevel, setChordExtensionLevel] = useState('none');
     const [currentTempo, setCurrentTempo] = useState(108);
+    
+    // Fetch available patterns from domain manager
+    const rhythmPatterns = getAvailableRhythmPatterns();
+    const harmonicPatterns = getAvailableHarmonicPatterns();
+    
+    // New state for harmonic rhythm and structural patterns
+    const [rhythmPattern, setRhythmPattern] = useState('uniform');
+    const [patternType, setPatternType] = useState('');
+    const [useStructuralPattern, setUseStructuralPattern] = useState(false);
+    const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
     const handleLengthChange = (event) => {
         const newLength = parseInt(event.target.value, 10);
@@ -26,19 +37,49 @@ const ChordGenerator = () => {
     const handleInversionToggle = () => setUseInversions(!useInversions);
     
     const handleChordExtensionChange = (event) => setChordExtensionLevel(event.target.value);
+    
+    const handleRhythmPatternChange = (event) => setRhythmPattern(event.target.value);
+    
+    const handlePatternTypeChange = (event) => setPatternType(event.target.value);
+    
+    const handleStructuralPatternToggle = () => setUseStructuralPattern(!useStructuralPattern);
+    
+    const toggleAdvancedOptions = () => setShowAdvancedOptions(!showAdvancedOptions);
 
     const handleGenerate = () => {
         const mode = MODES[selectedMode] || MODES.ionian;
-        const newProgression = generateProgression(
-            length, 
-            selectedKey, 
-            mode, 
-            useInversions, 
-            2, // rootOctave
-            chordExtensionLevel
-        );
-        console.log('Generated:', newProgression); // Debug
-        setProgression(newProgression);
+        
+        // Use structured generation if advanced features are enabled
+        if (showAdvancedOptions) {
+            const options = {
+                length,
+                key: selectedKey,
+                mode: selectedMode,
+                useInversions,
+                rootOctave: 2,
+                useExtendedChords: chordExtensionLevel,
+                harmonicRhythm: rhythmPattern,
+                patternType: patternType || null,
+                useStructuralPattern: patternType ? true : useStructuralPattern,
+                totalBeats: length * 2 // Default to 2 beats per chord
+            };
+            
+            const newProgression = generateStructuredProgression(options);
+            console.log('Generated structured:', newProgression);
+            setProgression(newProgression);
+        } else {
+            // Use the standard generator for basic features
+            const newProgression = generateProgression(
+                length, 
+                selectedKey, 
+                mode, 
+                useInversions, 
+                2, // rootOctave
+                chordExtensionLevel
+            );
+            console.log('Generated:', newProgression);
+            setProgression(newProgression);
+        }
     };
 
     const handleTempoChange = (newTempo) => setCurrentTempo(newTempo);
@@ -55,6 +96,13 @@ const ChordGenerator = () => {
         return base;
     };
 
+    const formatDuration = (chord) => {
+        if (!chord || !chord.duration) return null;
+        // Only show duration if it's not the default 1.0
+        if (chord.duration === 1) return null;
+        return <span className="duration-indicator">×{chord.duration.toFixed(1)}</span>;
+    };
+
     return (
         <div className="container">
             <div className="card">
@@ -66,6 +114,7 @@ const ChordGenerator = () => {
                                 {progression.map((chord, index) => (
                                     <div key={index} className="chord">
                                         {formatChord(chord)}
+                                        {formatDuration(chord)}
                                     </div>
                                 ))}
                             </div>
@@ -117,7 +166,7 @@ const ChordGenerator = () => {
                         </div>
                     </div>
                     
-                    {/* New Chord Extensions Dropdown */}
+                    {/* Chord Extensions Dropdown */}
                     <div className="chord-extensions-control">
                         <label htmlFor="extensions-select">Chord Complexity:</label>
                         <select 
@@ -152,7 +201,77 @@ const ChordGenerator = () => {
                         <span className="toggle-hint">Apply voice leading with slash chords</span>
                     </div>
                     
-                    <button onClick={handleGenerate}>Generate Progression</button>
+                    {/* Advanced options toggle */}
+                    <div className="advanced-options-toggle">
+                        <button 
+                            onClick={toggleAdvancedOptions} 
+                            className="toggle-button"
+                        >
+                            {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
+                        </button>
+                    </div>
+                    
+                    {/* Advanced structural options */}
+                    {showAdvancedOptions && (
+                        <div className="advanced-options">
+                            <div className="option-section">
+                                <h3>Harmonic Rhythm</h3>
+                                <div className="rhythm-control">
+                                    <label htmlFor="rhythm-select">Rhythm Pattern:</label>
+                                    <select 
+                                        id="rhythm-select" 
+                                        value={rhythmPattern} 
+                                        onChange={handleRhythmPatternChange}
+                                        className="mode-select"
+                                    >
+                                        {Object.entries(rhythmPatterns).map(([value, label]) => (
+                                            <option key={value} value={value}>{label}</option>
+                                        ))}
+                                    </select>
+                                    <div className="control-hint">
+                                        Controls how long each chord is held
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="option-section">
+                                <h3>Structural Patterns</h3>
+                                <div className="pattern-control">
+                                    <label htmlFor="pattern-select">Harmonic Pattern:</label>
+                                    <select 
+                                        id="pattern-select" 
+                                        value={patternType} 
+                                        onChange={handlePatternTypeChange}
+                                        className="mode-select"
+                                    >
+                                        <option value="">No specific pattern</option>
+                                        {Object.entries(harmonicPatterns).map(([value, label]) => (
+                                            <option key={value} value={value}>{label}</option>
+                                        ))}
+                                    </select>
+                                    <div className="control-hint">
+                                        Pre-defined harmonic patterns
+                                    </div>
+                                </div>
+                                
+                                <div className="chord-mode-toggle structural-toggle">
+                                    <label className="toggle-container">
+                                        <input
+                                            type="checkbox"
+                                            checked={useStructuralPattern}
+                                            onChange={handleStructuralPatternToggle}
+                                            className="chord-toggle-input"
+                                            disabled={patternType !== ''}
+                                        />
+                                        <span className="toggle-label">Allow Structural Patterns</span>
+                                    </label>
+                                    <span className="toggle-hint">Occasionally use common patterns</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <button onClick={handleGenerate} className="generate-button">Generate Progression</button>
                 </div>
             </div>
         </div>
