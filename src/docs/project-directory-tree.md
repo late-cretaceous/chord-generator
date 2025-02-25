@@ -26,20 +26,25 @@
 │   │   │   ├── mode-lydian.js
 │   │   │   ├── mode-mixolydian.js
 │   │   │   └── mode-phrygian.js
+│   │   ├── structure
+│   │   │   ├── harmonic-rhythm.js
+│   │   │   ├── progression-patterns.js
+│   │   │   └── structural-progression.js
 │   │   ├── synth
 │   │   │   ├── presets.js
 │   │   │   └── SynthEngine.js
+│   │   ├── voice
+│   │   │   ├── cadential-patterns.js
+│   │   │   ├── melodic-state.js
+│   │   │   ├── voice-leading-analysis.js
+│   │   │   └── voicing.js
 │   │   ├── audio.js
-│   │   ├── cadential-patterns.js
 │   │   ├── chord-extensions.js
 │   │   ├── core.js
 │   │   ├── logic.js
-│   │   ├── melodic-state.js
 │   │   ├── midi-export.js
 │   │   ├── mode-enhancer.js
-│   │   ├── progression-generator.js
-│   │   ├── voice-leading-analysis.js
-│   │   └── voicing.js
+│   │   └── progression-generator.js
 │   ├── App.css
 │   ├── App.jsx
 │   ├── index.css

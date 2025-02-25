@@ -1,5 +1,5 @@
 // lib/voice-leading-analysis.js
-import { NOTES, pitchToMidi } from './core';
+import { NOTES, pitchToMidi } from '../core';
 import { getMelodicState, updateMelodyState } from './melodic-state';
 
 /**

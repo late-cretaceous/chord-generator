@@ -6,7 +6,7 @@
  * @private Should only be used by structural-progression.js domain manager
  */
 
-import { NOTES, getScaleDegreeRoot } from './core';
+import { NOTES, getScaleDegreeRoot } from '../core';
 
 /**
  * Common harmonic pattern definitions with pattern functions

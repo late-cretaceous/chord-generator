@@ -1,12 +1,12 @@
 // lib/logic.js
 import { MODES } from './modes';
 import { calculateModalRoot, romanToChordSymbols, getNotesFromChordSymbol, parseChordSymbol } from './core';
-import { applyProgressionInversions } from './voicing';
+import { applyProgressionInversions } from './voice/voicing';
 import { generateChordProgression } from './progression-generator';
 import { applyChordExtensions } from './chord-extensions';
-import { applyCadentialPattern, suggestCadentialPattern } from './cadential-patterns';
-import { enhanceProgressionStructure, generateStructuralProgression } from './structural-progression';
-import { optimizeLeadingToneVoicing, hasLeadingTone } from './voice-leading-analysis';
+import { applyCadentialPattern, suggestCadentialPattern } from './voice/cadential-patterns';
+import { enhanceProgressionStructure, generateStructuralProgression } from './structure/structural-progression.js';
+import { optimizeLeadingToneVoicing, hasLeadingTone } from './voice/voice-leading-analysis';
 
 /**
  * Generates a chord progression with optional extended chord types,

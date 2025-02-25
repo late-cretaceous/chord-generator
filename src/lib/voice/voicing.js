@@ -1,5 +1,5 @@
 // lib/voicing.js
-import { NOTES, pitchToMidi, midiToPitch } from './core';
+import { NOTES, pitchToMidi, midiToPitch } from '../core';
 import { resetMelodicState } from './melodic-state';
 import { 
     calculateVoiceLeadingScore, 

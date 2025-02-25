@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { generateProgression, generateStructuredProgression } from '../lib/logic';
 import { MODES } from '../lib/modes';
 import { NOTES, getQualitySymbol } from '../lib/core';
-import { getAvailableRhythmPatterns, getAvailableHarmonicPatterns } from '../lib/structural-progression';
+import { getAvailableRhythmPatterns, getAvailableHarmonicPatterns } from '../lib/structure/structural-progression.js';
 import ProgressionPlayer from './ProgressionPlayer';
 import './ChordGenerator.css';
 
