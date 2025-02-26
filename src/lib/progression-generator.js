@@ -1,4 +1,96 @@
-// lib/progression-generator.js
+/**
+ * Determines where a borrowed chord might come from
+ * @param {string} romanNumeral - Roman numeral of the chord
+ * @param {string} modeName - Current mode name
+ * @returns {string} Source of the borrowed chord
+ */
+function determineBorrowedSource(romanNumeral, modeName) {
+    if (!romanNumeral || !modeName) return "unknown source";
+    
+    // Extract the base Roman numeral (without extensions)
+    const baseRoman = romanNumeral.replace(/[0-9]|maj|dim|aug|[Mm]/g, '');
+    
+    // Special case handling for Lydian mode
+    if (modeName === 'lydian') {
+        if (baseRoman === 'IV') return 'Ionian mode';
+        if (baseRoman === 'ii') return 'Ionian mode';
+        if (baseRoman === 'iv') return 'parallel minor';
+        if (baseRoman === 'bVII') return 'Mixolydian mode';
+    }
+    
+    // Common borrowed chord patterns
+    const borrowedChordSources = {
+        // For major modes
+        'ionian': {
+            'bII': 'Neapolitan/Phrygian',
+            'bIII': 'parallel minor',
+            'bVI': 'parallel minor',
+            'bVII': 'Mixolydian',
+            'iv': 'parallel minor',
+            'v': 'parallel minor',
+            'viio': 'harmonic minor'
+        },
+        'lydian': {
+            'IV': 'Ionian mode',
+            'ii': 'Ionian mode',
+            'iv': 'parallel minor',
+            'bVII': 'Mixolydian mode',
+            'bII': 'Neapolitan/Phrygian'
+        },
+        'mixolydian': {
+            'vii': 'harmonic major',
+            'viio': 'harmonic major',
+            'iii': 'parallel minor',
+            'vi': 'parallel minor',
+            'bII': 'Neapolitan/Phrygian'
+        },
+        
+        // For minor modes
+        'aeolian': {
+            'bII': 'Neapolitan/Phrygian',
+            'IV': 'Dorian mode',
+            'V': 'harmonic minor',
+            'viio': 'harmonic minor',
+            'i': 'parallel major'
+        },
+        'dorian': {
+            'bII': 'Phrygian mode',
+            'V': 'harmonic minor',
+            'viio': 'harmonic minor',
+            'bVI': 'Aeolian mode',
+            'bIII': 'Phrygian mode'
+        },
+        'phrygian': {
+            'V': 'harmonic minor',
+            'viio': 'harmonic minor',
+            'IV': 'Dorian mode',
+            'ii': 'Dorian mode'
+        },
+        'locrian': {
+            'I': 'parallel major',
+            'IV': 'Phrygian mode',
+            'V': 'harmonic minor'
+        }
+    };
+    
+    // Get borrowing map for current mode or default to ionian/aeolian
+    const borrowingMap = borrowedChordSources[modeName] || 
+        ((/^[a-z]/.test(baseRoman)) ? borrowedChordSources.aeolian : borrowedChordSources.ionian);
+    
+    // If we have a specific mapping for this chord, use it
+    if (borrowingMap[baseRoman]) {
+        return borrowingMap[baseRoman];
+    }
+    
+    // Default cases
+    if (/^[A-Z]/.test(modeName[0])) {
+        // Default for major modes
+        return 'parallel minor';
+    } else {
+        // Default for minor modes
+        return 'harmonic minor';
+    }
+}// lib/progression-generator.js
 import { MODES } from './modes';
 import { romanToChordSymbols, getNotesFromChordSymbol, parseChordSymbol } from './core';
 import { applyChordExtensions } from './chord-extensions';
@@ -274,9 +366,9 @@ export function generateChordProgression(length = 4, mode = MODES.ionian) {
 }
 
 /**
- * NEW FUNCTION: Enhances a progression with proper chord extensions and cadential patterns
+ * ENHANCED: Enriches a progression with proper chord extensions and theory metadata
  * @param {Object} options - Progression options
- * @returns {Array} Chord objects with notes
+ * @returns {Array} Chord objects with notes and theory metadata
  */
 export function enhanceProgressionWithExtensions(options) {
     const {
@@ -297,19 +389,29 @@ export function enhanceProgressionWithExtensions(options) {
         useStructuralPattern
     });
     
+    // Track what cadence is being used
+    let actualCadenceType = null;
+    let cadenceApplied = false;
+    
     // Apply cadential patterns if needed
     if (strictCadence && cadenceType) {
         // Strict enforcement of specified cadence
         romanNumerals = applyCadentialPattern(romanNumerals, mode.name, cadenceType);
+        actualCadenceType = cadenceType;
+        cadenceApplied = true;
     } else if (cadenceType) {
         // Apply specified cadence with 50% probability
         if (Math.random() < 0.5) {
             romanNumerals = applyCadentialPattern(romanNumerals, mode.name, cadenceType);
+            actualCadenceType = cadenceType;
+            cadenceApplied = true;
         }
     } else if (Math.random() < 0.4) {
         // 40% chance to apply a suggested cadence for more variety
         const suggestedCadence = suggestCadentialPattern(romanNumerals, mode.name);
         romanNumerals = applyCadentialPattern(romanNumerals, mode.name, suggestedCadence);
+        actualCadenceType = suggestedCadence;
+        cadenceApplied = true;
     }
     
     // Apply chord extensions to Roman numerals
@@ -318,18 +420,316 @@ export function enhanceProgressionWithExtensions(options) {
     // Convert to chord symbols
     const chordSymbols = romanToChordSymbols(enhancedRomanNumerals, key, mode);
     
-    // Generate actual chord objects with notes
-    const progression = chordSymbols.map(symbol => {
+    // Generate actual chord objects with notes and theory metadata
+    const progression = chordSymbols.map((symbol, index) => {
         const parsed = parseChordSymbol(symbol);
-        if (!parsed) return { root: symbol, quality: '', bass: `${symbol}${rootOctave}`, notes: [symbol] };
+        if (!parsed) return { 
+            root: symbol, 
+            quality: '', 
+            bass: `${symbol}${rootOctave}`, 
+            notes: [symbol],
+            theory: { romanNumeral: 'unknown' }
+        };
+        
         const notes = getNotesFromChordSymbol(symbol, rootOctave);
+        const romanNumeral = enhancedRomanNumerals[index];
+        
+        // Determine if chord is diatonic to mode
+        const isDiatonic = isDiatonicToMode(romanNumeral, mode);
+        
+        // Get borrowed source if not diatonic
+        const borrowedFrom = !isDiatonic ? determineBorrowedSource(romanNumeral, mode.name) : null;
+        
+        // Create theory metadata
+        const theory = {
+            // Base information
+            romanNumeral,
+            function: getFunctionFromRomanNumeral(romanNumeral, mode.name, borrowedFrom),
+            
+            // Cadence information
+            cadence: getCadenceInfo(index, romanNumerals.length, actualCadenceType, cadenceApplied),
+            
+            // Extension information
+            extension: getExtensionInfo(romanNumeral),
+            
+            // Diatonic/borrowed status
+            isDiatonic,
+            borrowedFrom,
+            
+            // Bass/inversion information will be added by voicing.js
+        };
+        
         return {
             root: parsed.root,
             quality: parsed.quality,
             bass: notes[0],
-            notes
+            notes,
+            theory
         };
     });
     
     return progression;
+}
+
+/**
+ * Gets chord function information from Roman numeral and also considers borrowed source
+ * @param {string} romanNumeral - Roman numeral chord symbol
+ * @param {string} modeName - Name of the mode
+ * @param {string} borrowedFrom - Optional source of borrowed chord
+ * @returns {string} Function name
+ */
+function getFunctionFromRomanNumeral(romanNumeral, modeName, borrowedSource = null) {
+    // Get base Roman numeral without extensions
+    const base = romanNumeral.replace(/[0-9]|maj|dim|aug|[Mm]/g, '');
+    
+    // Comprehensive chord function map for all modes
+    const functionMap = {
+        // Major modes
+        'ionian': {
+            'I': 'Tonic',
+            'ii': 'Supertonic',
+            'iii': 'Mediant',
+            'IV': 'Subdominant',
+            'V': 'Dominant',
+            'vi': 'Submediant',
+            'vii': 'Leading Tone',
+            'viio': 'Leading Tone',
+            // Borrowed/chromatic
+            'bII': 'Neapolitan',
+            'II': 'Secondary Dominant',
+            'bIII': 'Mediant',
+            'bVI': 'Submediant',
+            'bVII': 'Subtonic'
+        },
+        'lydian': {
+            'I': 'Tonic',
+            'II': 'Supertonic',
+            'iii': 'Mediant',
+            '#iv': 'Tritone',
+            'V': 'Dominant',
+            'vi': 'Submediant',
+            'vii': 'Leading Tone',
+            // Borrowed
+            'IV': 'Subdominant',
+            'iv': 'Subdominant',
+            'bVII': 'Subtonic'
+        },
+        'mixolydian': {
+            'I': 'Tonic',
+            'ii': 'Supertonic',
+            'iii': 'Mediant',
+            'IV': 'Subdominant',
+            'v': 'Dominant',
+            'vi': 'Submediant',
+            'bVII': 'Subtonic',
+            // Borrowed
+            'V': 'Dominant',
+            'vii': 'Leading Tone'
+        },
+        
+        // Minor modes
+        'aeolian': {
+            'i': 'Tonic',
+            'ii': 'Supertonic', 
+            'iio': 'Supertonic',
+            'III': 'Mediant',
+            'iv': 'Subdominant',
+            'v': 'Dominant',
+            'V': 'Dominant',
+            'VI': 'Submediant',
+            'VII': 'Subtonic',
+            'viio': 'Leading Tone',
+            // Borrowed
+            'bII': 'Neapolitan',
+            'IV': 'Subdominant',
+            'bVI': 'Flat Submediant'
+        },
+        'dorian': {
+            'i': 'Tonic',
+            'ii': 'Supertonic',
+            'III': 'Mediant',
+            'IV': 'Subdominant',
+            'v': 'Dominant',
+            'V': 'Dominant',
+            'vi': 'Submediant',
+            'VII': 'Subtonic',
+            // Borrowed
+            'bII': 'Neapolitan',
+            'viio': 'Leading Tone',
+            'VI': 'Submediant'
+        },
+        'phrygian': {
+            'i': 'Tonic',
+            'bII': 'Neapolitan',
+            'III': 'Mediant',
+            'iv': 'Subdominant',
+            'v': 'Dominant',
+            'V': 'Dominant',
+            'VI': 'Submediant',
+            'VII': 'Subtonic',
+            'viio': 'Leading Tone',
+            // Borrowed
+            'ii': 'Supertonic',
+            'IV': 'Subdominant'
+        },
+        'locrian': {
+            'i': 'Tonic', 
+            'io': 'Tonic',
+            'bII': 'Supertonic',
+            'bIII': 'Mediant',
+            'iv': 'Subdominant',
+            'v': 'Dominant', 
+            'V': 'Dominant',
+            'bVI': 'Submediant',
+            'bVII': 'Subtonic',
+            // Borrowed
+            'ii': 'Supertonic',
+            'III': 'Mediant'
+        },
+        
+        // Special harmonic minor functions
+        'harmonic_minor': {
+            'i': 'Tonic',
+            'iio': 'Supertonic',
+            'III+': 'Mediant',
+            'iv': 'Subdominant',
+            'V': 'Dominant',
+            'VI': 'Submediant',
+            'viio': 'Leading Tone',
+            // Common chords in harmonic minor
+            'bII': 'Neapolitan',
+            'bIII': 'Flat Mediant',
+            'bVI': 'Flat Submediant',
+            'bVII': 'Subtonic'
+        }
+    };
+    
+    // Special handling for borrowed chords
+    if (borrowedSource && borrowedSource.includes('harmonic minor')) {
+        // Use harmonic minor functions for borrowed chords
+        const harmonicMinorMap = functionMap.harmonic_minor;
+        
+        // For specific common cases in harmonic minor
+        if (base === 'V') return 'Dominant';
+        if (base === 'viio') return 'Leading Tone';
+        if (base === 'iv') return 'Subdominant';
+        if (base === 'VI') return 'Submediant';
+        if (base === 'bII') return 'Neapolitan';
+        
+        return harmonicMinorMap[base] || 'Borrowed';
+    }
+    
+    // Get the function map for the specified mode or default to ionian/aeolian
+    let modeMap;
+    if (functionMap[modeName]) {
+        modeMap = functionMap[modeName];
+    } else if (modeName === 'major') {
+        modeMap = functionMap.ionian;
+    } else if (modeName === 'minor') {
+        modeMap = functionMap.aeolian;
+    } else {
+        // Default to major/minor based on the first chord
+        modeMap = /^[a-z]/.test(base) ? functionMap.aeolian : functionMap.ionian;
+    }
+    
+    // Look up the function for this Roman numeral
+    const functionName = modeMap[base];
+    
+    // If not found in the specific mode map, try to find in generic major/minor maps
+    if (!functionName) {
+        // For major modes
+        if (modeName === 'ionian' || modeName === 'lydian' || modeName === 'mixolydian') {
+            return functionMap.ionian[base] || 'Secondary';
+        } 
+        // For minor modes
+        else {
+            return functionMap.aeolian[base] || functionMap.phrygian[base] || 'Secondary';
+        }
+    }
+    
+    return functionName;
+}
+
+/**
+ * Gets cadence information for a chord
+ * @param {number} index - Index in progression
+ * @param {number} length - Total progression length
+ * @param {string} cadenceType - Type of cadence
+ * @param {boolean} cadenceApplied - Whether a cadence was applied
+ * @returns {Object|null} Cadence information
+ */
+function getCadenceInfo(index, length, cadenceType, cadenceApplied) {
+    if (!cadenceApplied || !cadenceType) return null;
+    
+    // Only final two chords participate in cadence
+    if (index >= length - 2) {
+        return {
+            type: cadenceType,
+            position: index === length - 1 ? 'resolution' : 'approach'
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * Gets information about chord extensions
+ * @param {string} romanNumeral - Roman numeral with possible extensions
+ * @returns {Object|null} Extension information
+ */
+function getExtensionInfo(romanNumeral) {
+    // Check if there's any extension
+    if (!/[0-9]|maj|dim/.test(romanNumeral)) return null;
+    
+    // Extract extension type
+    if (romanNumeral.includes('maj7')) {
+        return { type: 'major7', description: 'Major 7th' };
+    } else if (romanNumeral.includes('7')) {
+        return { type: 'dominant7', description: 'Dominant 7th' };
+    } else if (romanNumeral.includes('dim') || romanNumeral.includes('o')) {
+        return { type: 'diminished', description: 'Diminished' };
+    } else if (romanNumeral.includes('9')) {
+        return { type: 'ninth', description: '9th chord' };
+    }
+    
+    return { type: 'unknown', description: 'Extended chord' };
+}
+
+/**
+ * Checks if a chord is diatonic to the mode
+ * @param {string} romanNumeral - Roman numeral chord symbol
+ * @param {Object} mode - Mode definition
+ * @returns {boolean} Whether chord is diatonic
+ */
+function isDiatonicToMode(romanNumeral, mode) {
+    if (!romanNumeral || !mode) return true;
+    
+    // Extract the base Roman numeral (without extensions)
+    const baseRoman = romanNumeral.replace(/[0-9]|maj|dim|aug|[Mm]/g, '');
+    
+    // Define diatonic chords for each mode
+    const diatonicChords = {
+        'ionian': ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'viio'],
+        'lydian': ['I', 'II', 'iii', '#IV', 'V', 'vi', 'vii'], // Lydian has #IV, not IV
+        'mixolydian': ['I', 'ii', 'iii', 'IV', 'v', 'vi', 'bVII'],
+        'aeolian': ['i', 'iio', 'III', 'iv', 'v', 'VI', 'VII'],
+        'dorian': ['i', 'ii', 'III', 'IV', 'v', 'vi', 'VII'],
+        'phrygian': ['i', 'bII', 'III', 'iv', 'v', 'VI', 'VII'],
+        'locrian': ['io', 'bII', 'bIII', 'iv', 'v', 'bVI', 'bVII']
+    };
+    
+    // Special case handling for borrowed chords in Lydian
+    if (mode.name === 'lydian') {
+        // In Lydian, IV (natural 4) is borrowed from Ionian
+        if (baseRoman === 'IV') return false;
+        
+        // In Lydian, ii is borrowed from Ionian (Lydian has II major)
+        if (baseRoman === 'ii') return false;
+    }
+    
+    // Get the appropriate diatonic chord list for this mode
+    const chordList = diatonicChords[mode.name] || diatonicChords.ionian;
+    
+    // Check if the base Roman numeral is in the diatonic chord list
+    return chordList.includes(baseRoman);
 }

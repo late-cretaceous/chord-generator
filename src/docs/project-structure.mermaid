@@ -5,9 +5,9 @@ flowchart TD
         ProgPlayer["ProgressionPlayer.jsx"]
         SynthCtrls["SynthControls.jsx"]
         MidiBtn["MidiExportButton.jsx"]
-        EnhProgDisp["EnhancedProgressionDisplay.jsx"]:::new
-        ChordTheory["ChordTheoryDisplay.jsx"]:::new
-        EnhStyles["EnhancedProgressionStyles.css"]:::new
+        EnhProgDisp["EnhancedProgressionDisplay.jsx"]:::enhanced
+        ChordTheory["ChordTheoryDisplay.jsx"]:::enhanced
+        EnhStyles["EnhancedProgressionStyles.css"]:::enhanced
     end
     
     subgraph High_Level["High-Level Coordinator"]
@@ -15,9 +15,9 @@ flowchart TD
     end
     
     subgraph Domain_Managers["Domain Managers"]
-        progression["progression-generator.js"]
+        progression["progression-generator.js"]:::enhanced
         structural["structural-progression.js"]
-        voicing["voicing.js"]
+        voicing["voicing.js"]:::enhanced
         audio["audio.js"]
     end
     
@@ -50,8 +50,13 @@ flowchart TD
     ChordGen --> logic
     ProgPlayer --> audio
     MidiBtn --> midiExport
-    EnhProgDisp -.-> core
-    ChordTheory -.-> core
+    
+    %% Special metadata flow
+    progression ==theory metadata==> voicing
+    voicing ==enhanced metadata==> logic
+    logic ==complete metadata==> ChordGen
+    ChordGen ==metadata==> EnhProgDisp
+    EnhProgDisp ==chord metadata==> ChordTheory
     
     %% High-Level Coordinator to Domain Managers
     logic --> progression
@@ -82,11 +87,10 @@ flowchart TD
     classDef domainManager fill:#adf,stroke:#333
     classDef utility fill:#dfd,stroke:#333
     classDef globalUtility fill:#fdf,stroke:#333
-    classDef new fill:#faf,stroke:#333,stroke-width:2px
+    classDef enhanced fill:#faf,stroke:#333,stroke-width:2px
     
     class App,ChordGen,ProgPlayer,SynthCtrls,MidiBtn uiComponent
     class logic highLevel
     class progression,structural,voicing,audio domainManager
     class chordExt,harmRhythm,progPatterns,voiceAnalysis,melodicState,cadential,synthEngine,presets,midiExport utility
     class core globalUtility
-    class EnhProgDisp,ChordTheory,EnhStyles new

@@ -1,13 +1,6 @@
 // lib/voice/voicing.js
-/**
- * @module voicing
- * @domain Voice
- * @responsibility Coordinates the application of inversions to chord progressions based on voice-leading principles
- * @public Domain manager that serves as the primary interface for optimizing chord voicings
- */
-
 import { NOTES, pitchToMidi, midiToPitch } from '../core';
-import { resetMelodicState, updateMelodyState, getMelodicState } from './melodic-state';
+import { resetMelodicState } from './melodic-state';
 import { 
     calculateVoiceLeadingScore, 
     getInversionBias,
@@ -18,38 +11,30 @@ import {
 } from './voice-leading-analysis';
 import {
     applyCadentialPattern,
-    suggestCadentialPattern,
-    hasLeadingTone as hasLeadingToneInChord
+    suggestCadentialPattern
 } from './cadential-patterns';
 
 /**
- * Gets all possible inversions for a chord with proper voice spacing across octaves
+ * Gets all possible inversions for a chord
  * @param {Object} chord - Chord object with notes array
- * @returns {Array} Array of inversion objects with properly spaced voices
+ * @returns {Array} Array of inversion objects
  */
 export function getInversions(chord) {
     if (!chord.notes || !chord.notes.length) return [];
-    
     const inversions = [];
-    const baseNotes = chord.notes.map(note => note.replace(/[0-9]/, '')); // Pitch classes only
+    const baseNotes = chord.notes.map(note => note.replace(/[0-9]/, '')); // Pitch classes: ["G", "B", "D"]
     const baseOctave = parseInt(chord.notes[0].slice(-1)); // e.g., 2 from "G2"
     
-    // For each inversion (bass note option)
     for (let i = 0; i < baseNotes.length; i++) {
-        // Reorder notes to put the inversion note first (as bass)
-        const reorderedNotes = [...baseNotes.slice(i), ...baseNotes.slice(0, i)];
-        
-        // Create voicings with different octave distributions
-        const voicings = createVoicingsForInversion(reorderedNotes, baseOctave);
-        
-        // Add each voicing as a separate inversion option
-        voicings.forEach((notes, idx) => {
-            inversions.push({
-                inversion: i,
-                bassNote: notes[0],
-                notes,
-                spacing: idx // Type of spacing (0=close, 1=open, etc.)
-            });
+        const reorderedNotes = [...baseNotes.slice(i), ...baseNotes.slice(0, i)]; // e.g., ["D", "G", "B"]
+        const notes = reorderedNotes.map(note => {
+            const noteMidi = pitchToMidi(note, baseOctave); // All in same octave
+            return midiToPitch(noteMidi);
+        });
+        inversions.push({
+            inversion: i,
+            bassNote: notes[0],
+            notes
         });
     }
     
@@ -57,174 +42,7 @@ export function getInversions(chord) {
 }
 
 /**
- * Creates multiple voicing options for a single inversion with different octave distributions
- * @param {Array} noteOrder - Array of note names in desired order (bass first)
- * @param {number} baseOctave - Starting octave for the bass note
- * @returns {Array} Array of note arrays with different voicing options
- */
-function createVoicingsForInversion(noteOrder, baseOctave) {
-    const voicings = [];
-    
-    // 1. Create close voicing (traditional)
-    const closeVoicing = [];
-    let currentOctave = baseOctave;
-    let previousMidi = -100;
-    
-    for (let i = 0; i < noteOrder.length; i++) {
-        const note = noteOrder[i];
-        const noteMidi = pitchToMidi(note, currentOctave);
-        
-        // For bass note
-        if (i === 0) {
-            closeVoicing.push(`${note}${currentOctave}`);
-            previousMidi = noteMidi;
-            continue;
-        }
-        
-        // If this note is lower than previous (in this octave), raise its octave
-        if (noteMidi <= previousMidi) {
-            const higherOctave = currentOctave + 1;
-            closeVoicing.push(`${note}${higherOctave}`);
-            previousMidi = pitchToMidi(note, higherOctave);
-        } else {
-            closeVoicing.push(`${note}${currentOctave}`);
-            previousMidi = noteMidi;
-        }
-    }
-    
-    voicings.push(closeVoicing);
-    
-    // 2. Create open voicing (spread across octaves)
-    const openVoicing = [];
-    let spreadOctave = baseOctave;
-    previousMidi = -100;
-    
-    for (let i = 0; i < noteOrder.length; i++) {
-        const note = noteOrder[i];
-        
-        // Bass stays in the base octave
-        if (i === 0) {
-            openVoicing.push(`${note}${spreadOctave}`);
-            previousMidi = pitchToMidi(note, spreadOctave);
-            continue;
-        }
-        
-        // For triads, put the third up an octave and the fifth in between
-        if (noteOrder.length <= 3) {
-            if (i === 1) { // Third - raise it up an octave
-                const newOctave = spreadOctave + 1;
-                openVoicing.push(`${note}${newOctave}`);
-                previousMidi = pitchToMidi(note, newOctave);
-            } else { // Fifth or remaining tones
-                // If this note would be lower than previous in current octave, raise it
-                const currentMidi = pitchToMidi(note, spreadOctave);
-                if (currentMidi <= previousMidi) {
-                    const newOctave = spreadOctave + 1;
-                    openVoicing.push(`${note}${newOctave}`);
-                    previousMidi = pitchToMidi(note, newOctave);
-                } else {
-                    openVoicing.push(`${note}${spreadOctave}`);
-                    previousMidi = currentMidi;
-                }
-            }
-        } 
-        // For seventh chords and extended chords, distribute more evenly
-        else {
-            // Third and seventh up an octave, fifth in base octave
-            if (i === 1 || i === 3) { // Third or seventh
-                const newOctave = spreadOctave + 1;
-                openVoicing.push(`${note}${newOctave}`);
-                previousMidi = pitchToMidi(note, newOctave);
-            } else if (i >= 4) { // Extensions (9th, 11th, 13th)
-                const newOctave = spreadOctave + 2; // Two octaves up
-                openVoicing.push(`${note}${newOctave}`);
-                previousMidi = pitchToMidi(note, newOctave);
-            } else { // Fifth stays in base octave
-                openVoicing.push(`${note}${spreadOctave}`);
-                previousMidi = pitchToMidi(note, spreadOctave);
-            }
-        }
-    }
-    
-    voicings.push(openVoicing);
-    
-    // 3. Create drop-2 voicing (popular for jazz guitar/piano)
-    // This drops the second-highest voice down an octave
-    if (noteOrder.length >= 4) {
-        const drop2Voicing = [...closeVoicing];
-        const secondHighestIdx = drop2Voicing.length - 2;
-        const note = drop2Voicing[secondHighestIdx];
-        const pitch = note.replace(/[0-9]/, '');
-        const octave = parseInt(note.slice(-1)) - 1;
-        drop2Voicing[secondHighestIdx] = `${pitch}${octave}`;
-        voicings.push(drop2Voicing);
-    }
-    
-    return voicings;
-}
-
-/**
- * Analyzes voice spacing and quality with a focus on reducing muddiness
- * @param {Array} notes - Array of notes in the chord
- * @returns {number} Penalty score (higher is worse)
- */
-function analyzeVoiceSpacing(notes) {
-    if (!notes || notes.length < 2) return 0;
-    
-    let penalty = 0;
-    const midiNotes = notes.map(note => {
-        const pitch = note.replace(/[0-9]/, '');
-        const octave = parseInt(note.slice(-1));
-        return pitchToMidi(pitch, octave);
-    });
-    
-    // Sort MIDI notes from low to high
-    midiNotes.sort((a, b) => a - b);
-    
-    // Check spacing between adjacent voices
-    for (let i = 0; i < midiNotes.length - 1; i++) {
-        const interval = midiNotes[i+1] - midiNotes[i];
-        
-        // Penalize small intervals in lower registers (most critical for clarity)
-        if (interval < 4) {
-            // How low are we? Lower = worse penalty
-            const registerFactor = Math.max(0, (48 - midiNotes[i]) / 12); // MIDI 48 = C3
-            // Severe penalty for close voices in the bass register
-            penalty += (4 - interval) * (registerFactor * 2 + 1);
-        }
-        
-        // Moderate penalty for voices more than an octave apart
-        if (interval > 12 && interval < 19) {
-            penalty += (interval - 12) * 0.1; // Small penalty
-        } else if (interval >= 19) {
-            penalty += (interval - 12) * 0.3; // Larger penalty for very wide intervals
-        }
-    }
-    
-    // Check overall range and distribution
-    const range = midiNotes[midiNotes.length - 1] - midiNotes[0];
-    if (range < 12 && midiNotes[0] < 48) {
-        // Severely penalize compressed voicings in low register
-        penalty += (12 - range) * 2;
-    }
-    
-    // Check for "muddy" voicings - three or more notes clustered in low register
-    let lowClusterCount = 0;
-    for (const midi of midiNotes) {
-        if (midi < 48) { // Below C3
-            lowClusterCount++;
-        }
-    }
-    
-    if (lowClusterCount >= 3) {
-        penalty += lowClusterCount * 3; // Severe penalty for low register clusters
-    }
-    
-    return penalty;
-}
-
-/**
- * Select the best inversion based on improved voice leading criteria
+ * Select the best inversion based on voice leading criteria
  * @param {Array} inversions - Array of possible inversions
  * @param {Array} previousChordNotes - Notes of the previous chord
  * @param {number} progressionLength - Total progression length
@@ -246,23 +64,16 @@ function selectBestInversion(
     if (!inversions.length) return null;
     if (!previousChordNotes || !previousChordNotes.length) return inversions[0];
 
-    // Give extra weight to voice distribution in lower registers
     const weightedInversions = inversions.map(inv => {
-        // Calculate basic voice leading score
-        let score = calculateVoiceLeadingScore(
+        // Calculate voice leading score with enhanced melodic factors
+        const score = calculateVoiceLeadingScore(
             previousChordNotes, 
             inv.notes, 
             progressionLength, 
             chordIndex,
             prevChordObj,
             nextChordObj
-        );
-        
-        // Add inversion bias
-        score += getInversionBias(inv.inversion, chordIndex, progressionLength);
-        
-        // Add spacing penalty - crucial for avoiding muddy voicings
-        score += analyzeVoiceSpacing(inv.notes);
+        ) + getInversionBias(inv.inversion, chordIndex, progressionLength);
         
         // Apply cadential bonus/penalty
         let cadentialAdjustment = 0;
@@ -303,23 +114,107 @@ function selectBestInversion(
                 }
             }
         }
-        
-        // Consider the voicing type - slightly prefer open voicings for clarity
-        let voicingTypeAdjustment = 0;
-        if (inv.spacing === 1) { // Open voicing
-            voicingTypeAdjustment -= 1.5; // Preference for open voicings
-        } else if (inv.spacing === 2) { // Drop-2 voicing
-            voicingTypeAdjustment -= 1.2; // Slight preference
-        }
                   
         return { 
             ...inv, 
-            score: score + cadentialAdjustment + leadingToneAdjustment + voicingTypeAdjustment 
+            score: score + cadentialAdjustment + leadingToneAdjustment 
         };
     });
 
     // Sort by score (lower is better)
     return weightedInversions.sort((a, b) => a.score - b.score)[0];
+}
+
+/**
+ * Assess whether an inversion would improve the progression
+ * @param {Object} currentChord - Current chord object
+ * @param {Object} previousChord - Previous chord object
+ * @param {number} progressionLength - Total progression length
+ * @param {number} chordIndex - Position in the progression
+ * @param {Array} progression - Full progression array
+ * @param {string} key - Key center (for leading tone analysis)
+ * @returns {Object} Assessment result with best inversion
+ */
+function assessInversionBenefit(
+    currentChord, 
+    previousChord, 
+    progressionLength, 
+    chordIndex,
+    progression,
+    key = 'C'
+) {
+    if (!previousChord || !previousChord.notes.length) {
+        return { shouldInvert: false, bestInversion: null };
+    }
+
+    const inversions = getInversions(currentChord);
+    if (!inversions.length) {
+        return { shouldInvert: false, bestInversion: null };
+    }
+
+    // Get the next chord if available (for context-aware decisions)
+    const nextChord = chordIndex < progression.length - 1 ? progression[chordIndex + 1] : null;
+    
+    // Calculate score for root position
+    const rootScore = calculateVoiceLeadingScore(
+        previousChord.notes, 
+        inversions[0].notes, 
+        progressionLength,
+        chordIndex,
+        previousChord,
+        nextChord
+    );
+    
+    // Find best inversion with enhanced scoring
+    const bestInversion = selectBestInversion(
+        inversions, 
+        previousChord.notes, 
+        progressionLength, 
+        chordIndex,
+        previousChord,
+        nextChord,
+        key
+    );
+    
+    const bestScore = calculateVoiceLeadingScore(
+        previousChord.notes, 
+        bestInversion.notes, 
+        progressionLength,
+        chordIndex,
+        previousChord,
+        nextChord
+    );
+
+    // Handle special cases for cadential patterns
+    let shouldInvert = (rootScore - bestScore) > 0.8; // Basic threshold
+    
+    // If this is at the end of the progression, make additional checks
+    if (chordIndex >= progressionLength - 2 && nextChord) {
+        // For authentic cadences, prefer certain inversions
+        const isAuthenticCadence = 
+            (currentChord.root !== nextChord.root) && // Different roots
+            (nextChord.bass && nextChord.bass.startsWith(nextChord.root)); // Next chord in root position
+            
+        if (isAuthenticCadence) {
+            // For dominant chords moving to tonic, ensure leading tone handling
+            if (hasLeadingTone(currentChord, nextChord.root)) {
+                // Calculate additional score factor for leading tone resolution
+                const ltAnalysis = analyzeLeadingToneResolution(
+                    previousChord.notes,
+                    bestInversion.notes,
+                    previousChord,
+                    nextChord
+                );
+                
+                if (ltAnalysis.hasLeadingTone && !ltAnalysis.resolvesCorrectly) {
+                    // Strongly encourage inversion if it fixes leading tone resolution
+                    shouldInvert = true;
+                }
+            }
+        }
+    }
+
+    return { shouldInvert, bestInversion };
 }
 
 /**
@@ -394,129 +289,116 @@ export function optimizeLeadingTones(progression, key) {
 }
 
 /**
- * Assess whether an inversion would improve the progression
- * @param {Object} currentChord - Current chord object
- * @param {Object} previousChord - Previous chord object
- * @param {number} progressionLength - Total progression length
- * @param {number} chordIndex - Position in the progression
- * @param {Array} progression - Full progression array
+ * ENHANCED: Apply inversions to a progression with enhanced voice leading
+ * Now adds inversion and voice-leading metadata to each chord
+ * @param {Array} progression - Array of chord objects
  * @param {string} key - Key center (for leading tone analysis)
- * @returns {Object} Assessment result with best inversion
+ * @returns {Array} Progression with optimized inversions and theory metadata
  */
-function assessInversionBenefit(
-    currentChord, 
-    previousChord, 
-    progressionLength, 
-    chordIndex,
-    progression,
-    key = 'C'
-) {
-    if (!previousChord || !previousChord.notes || !previousChord.notes.length) {
-        return { shouldInvert: false, bestInversion: null };
-    }
+export function applyProgressionInversions(progression, key = 'C') {
+    if (!progression || progression.length === 0) return progression;
 
-    const inversions = getInversions(currentChord);
-    if (!inversions.length) {
-        return { shouldInvert: false, bestInversion: null };
-    }
+    const result = [];
+    let previousChord = null;
+    
+    // Reset melodic state at the start of a new progression
+    resetMelodicState();
 
-    // Get the next chord if available (for context-aware decisions)
-    const nextChord = chordIndex < progression.length - 1 ? progression[chordIndex + 1] : null;
-    
-    // Find root position (not necessarily the first inversion in our array)
-    const rootPositionInv = inversions.find(inv => inv.inversion === 0 && inv.spacing === 0);
-    
-    if (!rootPositionInv) {
-        return { shouldInvert: false, bestInversion: inversions[0] };
-    }
-    
-    // Calculate score for root position
-    const rootScore = calculateVoiceLeadingScore(
-        previousChord.notes, 
-        rootPositionInv.notes, 
-        progressionLength,
-        chordIndex,
-        previousChord,
-        nextChord
-    ) + analyzeVoiceSpacing(rootPositionInv.notes);
-    
-    // Find best inversion with enhanced scoring
-    const bestInversion = selectBestInversion(
-        inversions, 
-        previousChord.notes, 
-        progressionLength, 
-        chordIndex,
-        previousChord,
-        nextChord,
-        key
-    );
-    
-    if (!bestInversion) {
-        return { shouldInvert: false, bestInversion: null };
-    }
-    
-    // Calculate comprehensive score for best inversion
-    const bestScore = calculateVoiceLeadingScore(
-        previousChord.notes, 
-        bestInversion.notes, 
-        progressionLength,
-        chordIndex,
-        previousChord,
-        nextChord
-    ) + analyzeVoiceSpacing(bestInversion.notes);
-
-    // Determine if we should invert based on score difference and context
-    
-    // Basic threshold - is the best inversion significantly better?
-    let shouldInvert = (rootScore - bestScore) > 1.5;
-    
-    // Special case for first chord
-    if (chordIndex === 0) {
-        // Prefer root position for first chord (80% of the time)
-        shouldInvert = shouldInvert && (Math.random() > 0.8);
-    }
-    
-    // Special cases for cadential patterns
-    if (chordIndex >= progressionLength - 2 && nextChord) {
-        // For authentic cadences, prefer certain inversions
-        const isAuthenticCadence = 
-            (currentChord.root !== nextChord.root) && // Different roots
-            (nextChord.bass && nextChord.bass.startsWith(nextChord.root)); // Next chord in root position
-            
-        if (isAuthenticCadence) {
-            // For dominant chords moving to tonic, ensure leading tone handling
-            if (hasLeadingTone(currentChord, nextChord.root)) {
-                // Calculate additional score factor for leading tone resolution
-                const ltAnalysis = analyzeLeadingToneResolution(
-                    previousChord.notes,
-                    bestInversion.notes,
-                    previousChord,
-                    nextChord
-                );
-                
-                if (ltAnalysis.hasLeadingTone && !ltAnalysis.resolvesCorrectly) {
-                    // Strongly encourage inversion if it fixes leading tone resolution
-                    shouldInvert = true;
-                }
-            }
-        }
+    progression.forEach((chord, chordIndex) => {
+        // Standard inversion assessment
+        const { shouldInvert, bestInversion } = assessInversionBenefit(
+            chord, 
+            previousChord, 
+            progression.length,
+            chordIndex,
+            progression,
+            key
+        );
         
-        // For final chord, strongly prefer root position (90% of the time)
-        if (chordIndex === progressionLength - 1) {
-            shouldInvert = shouldInvert && (Math.random() > 0.9);
+        if (shouldInvert && bestInversion && bestInversion.inversion !== 0) {
+            // Create enhanced chord with voice leading metadata
+            const enhancedChord = {
+                root: chord.root,
+                quality: chord.quality,
+                bass: bestInversion.bassNote,
+                notes: bestInversion.notes,
+                // Preserve existing theory data and add voicing information
+                theory: {
+                    ...(chord.theory || {}),
+                    voicing: {
+                        inversion: bestInversion.inversion,
+                        inversionName: getInversionName(bestInversion.inversion),
+                        smoothness: getSmoothness(previousChord?.notes, bestInversion.notes),
+                        hasLeadingTone: hasLeadingTone({ ...chord, notes: bestInversion.notes }, key),
+                    }
+                }
+            };
+            
+            // Add chord to result and update previous chord
+            result.push(enhancedChord);
+            previousChord = { ...chord, notes: bestInversion.notes };
+        } else {
+            // No inversion, but still add voicing metadata
+            const updatedChord = {
+                ...chord,
+                theory: {
+                    ...(chord.theory || {}),
+                    voicing: {
+                        inversion: 0,
+                        inversionName: 'Root Position',
+                        smoothness: getSmoothness(previousChord?.notes, chord.notes),
+                        hasLeadingTone: hasLeadingTone(chord, key),
+                    }
+                }
+            };
+            
+            result.push(updatedChord);
+            previousChord = chord;
         }
-    }
-    
-    // Always use inversions to fix severe muddiness issues
-    const rootSpacingScore = analyzeVoiceSpacing(rootPositionInv.notes);
-    const invSpacingScore = analyzeVoiceSpacing(bestInversion.notes);
-    
-    if (rootSpacingScore > 8 && invSpacingScore < rootSpacingScore * 0.6) {
-        // Root position is very muddy and inversion is much clearer
-        shouldInvert = true;
-    }
+    });
 
-    return { shouldInvert, bestInversion };
+    return result;
+}
+
+/**
+ * Gets a human-readable name for an inversion
+ * @param {number} inversion - Inversion number (0-based)
+ * @returns {string} Inversion name
+ */
+function getInversionName(inversion) {
+    switch (inversion) {
+        case 0: return 'Root Position';
+        case 1: return 'First Inversion';
+        case 2: return 'Second Inversion';
+        case 3: return 'Third Inversion';
+        default: return `${inversion}th Inversion`;
+    }
+}
+
+/**
+ * Assesses the smoothness of voice leading between two chords
+ * @param {Array} prevNotes - Previous chord notes
+ * @param {Array} currentNotes - Current chord notes
+ * @returns {string} Description of voice leading smoothness
+ */
+function getSmoothness(prevNotes, currentNotes) {
+    if (!prevNotes || !currentNotes) return 'Initial';
+    
+    let totalDistance = 0;
+    const minVoices = Math.min(prevNotes.length, currentNotes.length);
+    
+    for (let i = 0; i < minVoices; i++) {
+        const prevMidi = pitchToMidi(prevNotes[i].replace(/[0-9]/, ''), parseInt(prevNotes[i].slice(-1)));
+        const currMidi = pitchToMidi(currentNotes[i].replace(/[0-9]/, ''), parseInt(currentNotes[i].slice(-1)));
+        totalDistance += Math.abs(currMidi - prevMidi);
+    }
+    
+    const averageDistance = totalDistance / minVoices;
+    
+    if (averageDistance < 1) return 'Very Smooth';
+    if (averageDistance < 2) return 'Smooth';
+    if (averageDistance < 4) return 'Moderate';
+    return 'Disjunct';
 }
 
 /**
@@ -539,60 +421,4 @@ export function optimizeVoiceLeading(progression, key, modeName, useInversions =
     }
     
     return ltOptimized;
-}
-
-/**
- * Apply inversions to a progression with enhanced voice leading
- * @param {Array} progression - Array of chord objects
- * @param {string} key - Key center (for leading tone analysis)
- * @returns {Array} Progression with optimized inversions
- */
-export function applyProgressionInversions(progression, key = 'C') {
-    if (!progression || progression.length === 0) return progression;
-
-    const result = [];
-    let previousChord = null;
-    
-    // Reset melodic state at the start of a new progression
-    resetMelodicState();
-
-    progression.forEach((chord, chordIndex) => {
-        // For first chord, just use root position 90% of the time
-        if (chordIndex === 0) {
-            // 90% chance to keep first chord in root position
-            if (Math.random() < 0.9) {
-                result.push(chord);
-                previousChord = chord;
-                return;
-            }
-        }
-        
-        // Standard inversion assessment
-        const { shouldInvert, bestInversion } = assessInversionBenefit(
-            chord, 
-            previousChord, 
-            progression.length,
-            chordIndex,
-            progression,
-            key
-        );
-        
-        if (shouldInvert && bestInversion) {
-            // Create new chord object with the selected inversion
-            result.push({
-                root: chord.root,
-                quality: chord.quality,
-                bass: bestInversion.bassNote,
-                notes: bestInversion.notes,
-                duration: chord.duration // Preserve duration if present
-            });
-            previousChord = { ...chord, notes: bestInversion.notes };
-        } else {
-            // Keep original chord
-            result.push(chord);
-            previousChord = chord;
-        }
-    });
-
-    return result;
 }

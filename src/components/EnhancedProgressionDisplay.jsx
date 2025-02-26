@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import ChordTheoryDisplay from './ChordTheoryDisplay';
 import { NOTES } from '../lib/core';
+import './EnhancedProgressionStyles.css';
 
 /**
  * Displays a chord progression with detailed theory information
+ * Now using the embedded theory metadata with improved cadence display
  * 
  * @param {Object} props Component props
  * @param {Array} props.progression Chord progression to display
@@ -28,11 +30,6 @@ const EnhancedProgressionDisplay = ({
     setShowTheory(!showTheory);
   };
   
-  // Pre-calculate cadence information for display between chords
-  const chordAnalysis = progression.map((chord, index) => {
-    return analyzeChordInContext(chord, progression, index, keyCenter, mode);
-  });
-  
   return (
     <div className="enhanced-progression-container">
       <div className="theory-toggle">
@@ -52,8 +49,9 @@ const EnhancedProgressionDisplay = ({
       <div className="progression-display">
         <div className="progression">
           {progression.map((chord, index) => {
-            // Analyze each chord in context
-            const analysis = analyzeChordInContext(chord, progression, index, keyCenter, mode);
+            // Determine if this chord is part of a cadence with the next chord
+            const isPartOfCadence = index < progression.length - 1 && 
+                                  isCadentialConnection(chord, progression[index + 1]);
             
             return (
               <div 
@@ -69,16 +67,13 @@ const EnhancedProgressionDisplay = ({
                 
                 {showTheory && (
                   <div className="theory-container">
-                    <ChordTheoryDisplay
-                      progression={progression}
-                      index={index}
-                      chord={chord}
-                      keyCenter={keyCenter}
-                      mode={mode}
+                    <ChordTheoryDisplay 
+                      chord={chord} 
+                      hideCadenceInfo={true}
                     />
                     
-                    {/* If this is the final chord and it's a half cadence, show the label */}
-                    {analysis.isFinalHalfCadence && (
+                    {/* Display half cadence label if applicable */}
+                    {chord.theory?.cadence?.type === 'halfCadence' && (
                       <div className="half-cadence-label">
                         Half Cadence
                       </div>
@@ -86,12 +81,14 @@ const EnhancedProgressionDisplay = ({
                   </div>
                 )}
                 
-                {/* Display cadence between this chord and the next */}
-                {showTheory && analysis.nextCadence && (
-                  <div className="cadence-connector">
-                    <div className="cadence-line"></div>
-                    <div className="cadence-label">
-                      {analysis.nextCadence.type}
+                {/* Add cadence label between this chord and the next if applicable */}
+                {showTheory && isPartOfCadence && index % 2 === 0 && (
+                  <div className="cadence-container">
+                    <div className="cadence-connector">
+                      <div className="cadence-line"></div>
+                      <div className="cadence-label">
+                        {formatCadenceType(chord.theory.cadence.type)}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -120,114 +117,9 @@ const EnhancedProgressionDisplay = ({
 };
 
 /**
- * Analyzes a chord in the context of a progression to determine cadential relationships
- */
-function analyzeChordInContext(chord, progression, index, keyCenter, mode) {
-  const result = {
-    nextCadence: null,
-    prevCadence: null
-  };
-  
-  // Get progression length for context
-  const length = progression.length;
-  
-  // Only check for cadences at the end of the progression
-  const isLastPair = (index === length - 2);
-  
-  // For half cadences, we need to check if this is the last chord
-  const isLastChord = (index === length - 1);
-  
-  if (isLastPair) {
-    // Check for authentic, plagal, or deceptive cadence in the final pair
-    const nextChord = progression[index + 1];
-    result.nextCadence = detectCadence(chord, nextChord, keyCenter, mode, "final");
-  } 
-  else if (isLastChord && !result.nextCadence) {
-    // Check for half cadence possibility (only if the progression ends with this chord)
-    // We only need to check the chord itself, not its relationship to the next chord
-    const { root, quality } = chord;
-    const keyIndex = NOTES.indexOf(keyCenter);
-    const rootIndex = NOTES.indexOf(root);
-    
-    if (keyIndex !== -1 && rootIndex !== -1) {
-      // Calculate scale degree
-      const degree = (rootIndex - keyIndex + 12) % 12;
-      
-      // Half cadence check - final chord is the dominant (V)
-      if (degree === 7 && (quality === 'major' || quality === 'dominant7')) {
-        result.isFinalHalfCadence = true;
-      }
-    }
-  }
-  
-  return result;
-}
-
-/**
- * Detects if a chord pair forms a cadence
- * Only identifies true cadences at appropriate phrase endings
- */
-function detectCadence(chord1, chord2, keyCenter, mode, position = null) {
-  if (!chord1 || !chord2 || !keyCenter) {
-    return null;
-  }
-  
-  const { root: root1, quality: quality1 } = chord1;
-  const { root: root2, quality: quality2 } = chord2;
-  
-  // Get indices for interval calculation
-  const keyIndex = NOTES.indexOf(keyCenter);
-  const root1Index = NOTES.indexOf(root1);
-  const root2Index = NOTES.indexOf(root2);
-  
-  if (keyIndex === -1 || root1Index === -1 || root2Index === -1) {
-    return null;
-  }
-  
-  // Calculate scale degrees relative to the key
-  const degree1 = (root1Index - keyIndex + 12) % 12;
-  const degree2 = (root2Index - keyIndex + 12) % 12;
-  
-  // Only identify cadences if they're at the final position
-  if (position !== "final") {
-    return null;
-  }
-  
-  // Authentic cadence (V-I)
-  if ((degree1 === 7 && degree2 === 0) &&
-      (quality1 === 'major' || quality1 === 'dominant7') &&
-      (quality2 === 'major' || quality2 === 'minor')) {
-    return {
-      type: 'Authentic Cadence'
-    };
-  }
-  
-  // Plagal cadence (IV-I)
-  if (degree1 === 5 && degree2 === 0 &&
-      (quality1 === 'major' || quality1 === 'major7') &&
-      (quality2 === 'major' || quality2 === 'minor')) {
-    return {
-      type: 'Plagal Cadence'
-    };
-  }
-  
-  // Deceptive cadence (V-vi)
-  if (degree1 === 7 && degree2 === 9 && 
-     (quality1 === 'major' || quality1 === 'dominant7') && 
-      quality2 === 'minor') {
-    return {
-      type: 'Deceptive Cadence'
-    };
-  }
-  
-  // We don't detect Half Cadences here - those are handled separately
-  // since they depend on being the very last chord of the progression
-  
-  return null;
-}
-
-/**
  * Format chord display with quality and inversions
+ * @param {Object} chord - Chord object to format
+ * @returns {JSX.Element} Formatted chord display
  */
 function formatChord(chord) {
   if (!chord || typeof chord !== 'object') return chord;
@@ -266,6 +158,39 @@ function formatChord(chord) {
   }
   
   return base;
+}
+
+/**
+ * Determines if two chords form a cadential connection
+ * @param {Object} chord1 - First chord
+ * @param {Object} chord2 - Second chord
+ * @returns {boolean} Whether chords form a cadence
+ */
+function isCadentialConnection(chord1, chord2) {
+  // Using the metadata from chord objects
+  if (!chord1?.theory?.cadence || !chord2?.theory?.cadence) return false;
+  
+  // Check if both chords participate in the same cadence
+  return chord1.theory.cadence.type === chord2.theory.cadence.type &&
+         chord1.theory.cadence.position === 'approach' &&
+         chord2.theory.cadence.position === 'resolution';
+}
+
+/**
+ * Formats a cadence type string for display
+ * @param {string} cadenceType - The type of cadence
+ * @returns {string} Formatted cadence type
+ */
+function formatCadenceType(cadenceType) {
+  if (!cadenceType) return '';
+  
+  // Convert camelCase to Title Case with spaces
+  const formatted = cadenceType
+    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+    .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+    .trim(); // Remove any extra spaces
+    
+  return `${formatted} Cadence`;
 }
 
 export default EnhancedProgressionDisplay;

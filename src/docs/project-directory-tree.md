@@ -7,6 +7,9 @@
 │   ├── components
 │   │   ├── ChordGenerator.css
 │   │   ├── ChordGenerator.jsx
+│   │   ├── ChordTheoryDisplay.jsx
+│   │   ├── EnhancedProgressionDisplay.jsx
+│   │   ├── EnhancedProgressionStyles.css
 │   │   ├── MidiExportButton.jsx
 │   │   ├── ProgressionPlayer.jsx
 │   │   └── SynthControls.jsx
@@ -14,6 +17,7 @@
 │   │   ├── architectural-guidelines.md
 │   │   ├── module-specifications.md
 │   │   ├── project-directory-tree.md
+│   │   ├── project-structure.mermaid
 │   │   ├── README.md
 │   │   └── TODO.md
 │   ├── lib
@@ -29,6 +33,7 @@
 │   │   ├── structure
 │   │   │   ├── harmonic-rhythm.js
 │   │   │   ├── progression-patterns.js
+│   │   │   ├── project-structure.mermaid
 │   │   │   └── structural-progression.js
 │   │   ├── synth
 │   │   │   ├── presets.js

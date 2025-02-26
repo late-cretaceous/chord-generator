@@ -30,7 +30,7 @@
 
 ### progression-generator.js
 
-**Purpose:** Manages the generation of chord progressions using music theory principles, handling chord-to-chord transitions based on probability distributions specific to each musical mode.
+**Purpose:** Manages the generation of chord progressions using music theory principles, handling chord-to-chord transitions based on probability distributions specific to each musical mode. **Now also responsible for generating comprehensive music theory metadata.**
 
 **Inputs:**
 * `length` (Number, optional, default: 4) — Desired length of progression
@@ -38,16 +38,25 @@
 * `options` (Object, optional) — Additional options like pattern types
 
 **Outputs:** 
-* Array of Roman numeral strings representing chord progressions (e.g., `["I", "vi", "IV", "V"]`)
-* Array of chord objects when using the enhanced generation function
+* Array of chord objects with comprehensive theory metadata:
+  ```javascript
+  {
+    root: "C",       // Root note
+    quality: "major", // Chord quality
+    bass: "C2",      // Bass note with octave
+    notes: ["C2", "E2", "G2"], // Full chord notes
+    theory: {        // Theory metadata
+      romanNumeral: "I",
+      function: "Tonic",
+      isDiatonic: true,
+      borrowedFrom: null, // Source if borrowed
+      cadence: { type: "authentic", position: "approach" }, // If part of cadence
+      extension: { type: "major7", description: "Major 7th" } // If extended
+    }
+  }
+  ```
 
-**Behavior:** Generates chord progressions by selecting the tonic chord as the starting point, then repeatedly selecting subsequent chords based on transition probabilities defined in the mode. Can also use predefined harmonic patterns when requested. Now includes enhanced functionality to manage chord extensions and convert to complete chord objects.
-
-**Dependencies:**
-* `./modes`: Import of mode definitions (`MODES`)
-* `./core`: Core music theory utilities (global utility)
-* `./chord-extensions`: Utility for applying chord extensions
-* `./voice/cadential-patterns`: Utility for cadential patterns
+**Behavior:** Generates chord progressions based on transition probabilities defined in the mode, applies extensions and cadential patterns, and now enriches each chord with comprehensive music theory metadata directly during creation. Identifies borrowed chords and their sources, chord functions, and cadential relationships.
 
 ### structure/structural-progression.js
 
@@ -69,25 +78,43 @@
 * `./harmonic-rhythm`: For rhythm patterns
 * `./progression-patterns`: For harmonic patterns and sequences
 
-### voice/voicing.js
+### voicing.js
 
-**Purpose:** Coordinates the application of inversions to chord progressions based on voice-leading principles, acting as the primary interface for optimizing chord voicings.
+**Purpose:** Coordinates the application of inversions to chord progressions based on voice-leading principles, acting as the primary interface for optimizing chord voicings. **Now preserves and enhances theory metadata.**
 
-**Inputs:**
-* `progression`: Array of chord objects
-* Various inputs for helper functions (chord objects, inversion arrays, etc.)
+**Inputs:** (unchanged)
 
-**Outputs:**
-* Enhanced progression with optimized inversions
-* Utilities for generating inversions and formatting inversion symbols
+**Outputs:** 
+* Enhanced progression with optimized inversions and enhanced theory metadata:
+  ```javascript
+  {
+    // Original properties
+    root: "C",
+    quality: "major",
+    bass: "E2",  // Changed to reflect inversion
+    notes: ["E2", "G2", "C3"], // Reordered notes
+    
+    // Enhanced theory metadata
+    theory: {
+      // Preserved from progression generator
+      romanNumeral: "I",
+      function: "Tonic",
+      isDiatonic: true,
+      borrowedFrom: null,
+      cadence: { type: "authentic", position: "approach" },
+      
+      // Added by voicing.js
+      voicing: {
+        inversion: 1,
+        inversionName: "First Inversion",
+        smoothness: "Very Smooth",
+        hasLeadingTone: false
+      }
+    }
+  }
+  ```
 
-**Behavior:** Coordinates inversion optimization by generating possible inversions for each chord, evaluating them using voice-leading principles, and selecting the best option based on musical context. Now provides a unified API for handling all voice-related operations, including leading tone handling and cadential patterns.
-
-**Dependencies:**
-* `../core`: For pitch manipulation functions (global utility)
-* `./melodic-state`: For managing melodic contour (utility)
-* `./voice-leading-analysis`: For scoring voice leading quality (utility)
-* `./cadential-patterns`: For analyzing and applying cadential patterns (utility)
+**Behavior:** Preserves theory metadata from the progression generator while adding voice-leading information during inversion optimization.
 
 ### audio.js
 
@@ -391,3 +418,15 @@
 **Behavior:** Supplies static data (e.g., `NOTES`, `CHORD_INTERVALS`) and functions for pitch manipulation, chord construction, and modal calculations. As a global utility, it can be imported by both high-level coordinators and domain managers.
 
 **Dependencies:** None—relies on internal constants and JavaScript built-ins
+
+### ChordTheoryDisplay.jsx
+
+**Purpose:** Displays detailed music theory information about a chord within its musical context. **Now uses embedded metadata rather than analyzing chords.**
+
+**Inputs:**
+* `chord` (Object) — Chord object with theory metadata
+* `hideCadenceInfo` (Boolean) - Whether to hide cadence information
+
+**Outputs:** Rendered component displaying formatted chord symbol, chord function, borrowed chord information, and voice leading features.
+
+**Behavior:** Displays the theory metadata provided by progression-generator.js and voicing.js rather than analyzing the chord itself.
