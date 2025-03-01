@@ -132,28 +132,37 @@ const ProgressionPlayer = ({
     if (simplified) {
         return (
             <div className="simplified-player">
-                <div className="main-controls">
-                    <button 
-                        onClick={handlePlayPause}
-                        className="play-button"
-                        aria-label={isPlaying ? "Pause" : "Play"}
-                    >
-                        {isPlaying ? '⏸' : '▶'}
-                    </button>
+                {/* Updated controls layout */}
+                <div className="controls-container">
+                    {/* Left side: MIDI Export button */}
+                    <div className="left-controls">
+                        <MidiExportButton 
+                            progression={progression}
+                            tempo={getTempoBPM()}
+                        />
+                    </div>
                     
-                    <MidiExportButton 
-                        progression={progression}
-                        tempo={getTempoBPM()}
-                    />
+                    {/* Center: Play button */}
+                    <div className="center-controls">
+                        <button 
+                            onClick={handlePlayPause}
+                            className="play-button"
+                            aria-label={isPlaying ? "Pause" : "Play"}
+                        >
+                            {isPlaying ? '⏸' : '▶'}
+                        </button>
+                    </div>
+                    
+                    {/* Right side: Sound Settings */}
+                    <div className="right-controls">
+                        <button 
+                            onClick={toggleAdvancedControls} 
+                            className="advanced-toggle-button"
+                        >
+                            Sound Settings
+                        </button>
+                    </div>
                 </div>
-                
-                {/* Only show toggle for advanced controls */}
-                <button 
-                    onClick={toggleAdvancedControls} 
-                    className="advanced-toggle-button"
-                >
-                    {showAdvancedControls ? "Hide Settings" : "Sound Settings"}
-                </button>
                 
                 {/* Advanced controls that can be toggled */}
                 {showAdvancedControls && (

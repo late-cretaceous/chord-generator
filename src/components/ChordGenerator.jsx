@@ -90,23 +90,27 @@ const ChordGenerator = () => {
           )}
         </div>
         
-        {/* Essential controls: Play/Export and Generate button */}
-        <div className="essential-controls">
+        {/* Updated player and controls layout */}
+        <div className="controls-wrapper">
+          {/* Player controls */}
           {progression.length > 0 && (
-            <div className="player-wrapper">
+            <div className="player-container">
               <ProgressionPlayer
                 progression={progression}
                 maintainPlayback={true}
                 onTempoChange={handleTempoChange}
                 tempo={currentTempo}
-                simplified={true} // New prop for simplified player UI
+                simplified={true}
               />
             </div>
           )}
           
-          <button onClick={handleGenerate} className="generate-button">
-            Generate Progression
-          </button>
+          {/* Generate button */}
+          <div className="generate-button-container">
+            <button onClick={handleGenerate} className="generate-button">
+              Generate Progression
+            </button>
+          </div>
         </div>
         
         {/* Options toggle button */}

@@ -315,13 +315,6 @@ h2 {
 }
 
 /* Simplified player styles */
-.simplified-player {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
 .main-controls {
     display: flex;
     align-items: center;
@@ -458,4 +451,324 @@ h2 {
 .placeholder {
     color: #888;
     font-style: italic;
+}
+
+/* Add these styles to ChordGenerator.css */
+
+/* Player layout */
+.simplified-player {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    gap: 16px;
+}
+
+.controls-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 8px 0;
+}
+
+.left-controls, .center-controls, .right-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+
+.left-controls {
+    justify-content: flex-start;
+}
+
+.right-controls {
+    justify-content: flex-end;
+}
+
+/* Play button */
+.play-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+    box-shadow: 0 2px 6px rgba(74, 144, 226, 0.3);
+}
+
+.play-button:hover {
+    transform: scale(1.05);
+    background-color: #3a80d2;
+}
+
+.play-button:active {
+    transform: scale(0.98);
+}
+
+/* Export MIDI button */
+.export-button {
+    background-color: #9c27b0;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.export-button:hover {
+    background-color: #7b1fa2;
+    transform: translateY(-2px);
+}
+
+.export-button:active {
+    transform: translateY(0);
+}
+
+/* Settings button */
+.advanced-toggle-button {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 6px 10px;
+    transition: color 0.2s;
+}
+
+.advanced-toggle-button:hover {
+    color: #4a90e2;
+}
+
+/* Advanced controls */
+.advanced-player-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tempo-select,
+.synth-select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background-color: white;
+    font-size: 14px;
+    color: #333;
+}
+
+.chord-mode-toggle {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.chord-toggle-input {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    appearance: none;
+    background-color: #e0e0e0;
+    border-radius: 11px;
+    transition: background-color 0.3s;
+    cursor: pointer;
+    margin-right: 10px;
+    outline: none;
+}
+
+.chord-toggle-input:checked {
+    background-color: #4a90e2;
+}
+
+.chord-toggle-input:before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    background-color: white;
+    transition: left 0.3s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chord-toggle-input:checked:before {
+    left: 20px;
+}
+
+.toggle-label {
+    font-size: 14px;
+    color: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .controls-container {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .left-controls, .center-controls, .right-controls {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .left-controls {
+        order: 2;
+    }
+    
+    .center-controls {
+        order: 1;
+    }
+    
+    .right-controls {
+        order: 3;
+    }
+}
+
+/* Additional styles for ChordGenerator.css */
+
+/* Main controls wrapper */
+.controls-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    margin: 20px 0;
+}
+
+/* Player container - where the controls live */
+.player-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+/* Generate button styling update */
+.generate-button-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.generate-button {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 28px;
+    padding: 12px 32px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.generate-button:hover {
+    background-color: #3e8e41;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.generate-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
+}
+
+/* Options section styling update */
+.options-toggle {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 16px;
+}
+
+.toggle-button {
+    background-color: #f0f0f0;
+    color: #555;
+    border: 1px solid #ddd;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggle-button:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+/* Updated for better vertical spacing */
+.options-panel {
+    margin-top: 16px;
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    overflow: hidden;
+}
+
+.options-content {
+    padding: 20px;
+}
+
+/* Chord styling improvements */
+.chord {
+    padding: 12px 18px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    font-size: 18px;
+    font-family: 'Roboto Mono', monospace;
+    color: #333;
+    display: inline-block;
+    margin: 6px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.chord:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chord-inversion {
+    color: #4a90e2;
+    font-weight: 500;
+}
+
+.duration-indicator {
+    display: block;
+    font-size: 12px;
+    color: #777;
+    margin-top: 4px;
+    text-align: center;
 }
