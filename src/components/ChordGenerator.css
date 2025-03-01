@@ -4,6 +4,7 @@ body, html {
     padding: 0;
     height: 100%;
     width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 #root {
@@ -24,74 +25,424 @@ body, html {
 
 .card {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     padding: 24px;
     width: 100%;
-    max-width: 500px;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
 }
 
 h2 {
     text-align: center;
-    margin: 0 0 20px 0;
+    margin: 0 0 24px 0;
     color: #333;
-    font-size: 24px;
+    font-size: 28px;
+    font-weight: 600;
 }
 
 /* Display and progression styles */
 .display {
     background-color: #f8f8f8;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    min-height: 100px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
-    padding: 16px;
+    margin-bottom: 24px;
+    padding: 20px;
 }
 
 .progression {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 16px;
     justify-content: center;
+    padding: 8px;
 }
 
-/* Add these to ChordGenerator.css */
+/* Essential controls - always visible */
+.essential-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
 
-.chord-extensions-control {
-    margin: 12px 0;
+.player-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Generate button */
+.generate-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.generate-button:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.generate-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Options toggle button */
+.options-toggle {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.toggle-button {
+    background-color: #f0f0f0;
+    color: #555;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggle-button:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+/* Collapsible options panel */
+.options-panel {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid #eee;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.options-content {
+    padding: 16px;
+}
+
+/* Control groups */
+.control-group {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.key-control,
+.mode-control {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.chord-extensions-control label {
-    color: #333;
-    font-size: 16px;
+.key-control label,
+.mode-control label {
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
 }
 
-.control-hint {
+.key-select,
+.mode-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 30px;
+}
+
+/* Length control */
+.length-control {
+    margin-bottom: 16px;
+}
+
+.length-control label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.length-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+    margin: 10px 0;
+}
+
+.length-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4a90e2;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.length-slider::-webkit-slider-thumb:hover {
+    background: #3a80d2;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
     font-size: 12px;
     color: #666;
-    font-style: italic;
-    margin-top: 4px;
 }
 
-/* Update progression styling to handle extended chord types */
+/* Chord extensions control */
+.chord-extensions-control {
+    margin-bottom: 16px;
+}
+
+.chord-extensions-control label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Toggle switch for inversions */
+.chord-mode-toggle {
+    margin-bottom: 16px;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.chord-toggle-input {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    appearance: none;
+    background-color: #e0e0e0;
+    border-radius: 11px;
+    transition: background-color 0.3s;
+    cursor: pointer;
+    margin-right: 10px;
+    outline: none;
+}
+
+.chord-toggle-input:checked {
+    background-color: #4a90e2;
+}
+
+.chord-toggle-input:before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    background-color: white;
+    transition: left 0.3s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chord-toggle-input:checked:before {
+    left: 20px;
+}
+
+.toggle-label {
+    font-size: 14px;
+    color: #555;
+}
+
+/* Advanced options */
+.advanced-options-toggle {
+    margin: 8px 0 16px;
+}
+
+.advanced-options {
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.option-section {
+    margin-bottom: 16px;
+}
+
+.option-section h3 {
+    font-size: 16px;
+    margin: 0 0 12px 0;
+    color: #444;
+}
+
+/* Simplified player styles */
+.simplified-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.main-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.play-button {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 24px;
+    line-height: 1;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background-color 0.2s;
+    box-shadow: 0 2px 6px rgba(74, 144, 226, 0.3);
+}
+
+.play-button:hover {
+    transform: scale(1.05);
+    background-color: #3a80d2;
+}
+
+.play-button:active {
+    transform: scale(0.98);
+}
+
+.advanced-toggle-button {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 4px;
+}
+
+.advanced-player-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+    max-width: 320px;
+}
+
+.tempo-select,
+.synth-select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background-color: white;
+    font-size: 14px;
+}
+
+/* MIDI export button */
+.export-button {
+    background-color: #9c27b0;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.export-button:hover {
+    background-color: #7b1fa2;
+    transform: translateY(-2px);
+}
+
+.export-button:active {
+    transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .card {
+        padding: 16px;
+    }
+    
+    .control-group {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .essential-controls {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .main-controls {
+        flex-direction: column;
+    }
+}
+
+/* Chord display styling */
 .chord {
     font-family: monospace;
     font-size: 20px;
     color: #333;
-    display: inline-block;
-    padding: 6px 12px;
+    padding: 10px 16px;
     background-color: #f0f0f0;
-    border-radius: 4px;
+    border-radius: 8px;
     border: 1px solid #ddd;
-    margin: 4px;
     transition: transform 0.2s;
+    display: inline-block;
+    margin: 4px;
 }
 
 .chord:hover {
@@ -105,260 +456,6 @@ h2 {
 }
 
 .placeholder {
-    color: #666;
-}
-
-/* Control styles */
-.controls {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.control-group {
-    display: flex;
-    gap: 16px;
-}
-
-.key-control,
-.mode-control {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.key-control label,
-.mode-control label {
-    color: #333;
-    font-size: 16px;
-}
-
-.key-select,
-.mode-select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 16px;
-    color: #333;
-    cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 12px;
-    padding-right: 30px;
-}
-
-/* Player container and controls */
-.player-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    margin-top: 16px;
-}
-
-.player-flex-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-}
-
-.player-controls-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-}
-
-/* Tempo control */
-.tempo-control {
-    width: 160px;
-    display: flex;
-    justify-content: center;
-}
-
-.tempo-select {
-    width: 160px;
-    padding: 8px 30px 8px 12px;
-    border: 2px solid #4a90e2;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 14px;
-    cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 12px;
-}
-
-/* Export button */
-.export-button {
-    background-color: #4CAF50;
-    transition: background-color 0.2s;
-    width: 160px;
-    height: 36px;
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    color: white;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.export-button:hover {
-    background-color: #45a049;
-}
-
-/* Play button */
-.play-button-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 8px;
-}
-
-.play-button {
-    width: 60px;
-    height: 60px;
-    padding: 0;
-    border-radius: 50%;
-    font-size: 28px;
-    line-height: 1;
-    min-width: auto;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Chord mode toggle */
-.chord-mode-toggle {
-    display: flex;
-    align-items: center;
-    margin-top: 8px;
-}
-
-.toggle-container {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-}
-
-.chord-toggle-input {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    appearance: none;
-    background-color: #e0e0e0;
-    border-radius: 10px;
-    transition: background-color 0.3s;
-    cursor: pointer;
-    margin-right: 8px;
-}
-
-.chord-toggle-input:checked {
-    background-color: #4a90e2;
-}
-
-.chord-toggle-input:before {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    top: 2px;
-    left: 2px;
-    background-color: white;
-    transition: left 0.3s;
-}
-
-.chord-toggle-input:checked:before {
-    left: 18px;
-}
-
-.toggle-label {
-    font-size: 14px;
-    color: #555;
-    width: 80px;
-    text-align: left;
-}
-
-/* Synth controls */
-.synth-controls {
-    background-color: #f8f8f8;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 16px;
-    width: 100%;
-    max-width: 160px;
-}
-
-.synth-control-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.synth-label {
-    color: #333;
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.synth-select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 14px;
-    color: #333;
-    cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 12px;
-    padding-right: 30px;
-}
-
-/* Chord inversion styles */
-.chord-inversion {
-    color: #4a90e2;
-    font-weight: 500;
-}
-
-.inversion-toggle {
-    margin: 12px 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.toggle-hint {
-    font-size: 12px;
-    color: #666;
+    color: #888;
     font-style: italic;
 }
