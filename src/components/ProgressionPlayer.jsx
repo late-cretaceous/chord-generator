@@ -4,7 +4,7 @@ import MidiExportButton from './MidiExportButton';
 
 /**
  * Simplified ProgressionPlayer Component
- * Focused on essential playback controls and MIDI export
+ * Receives sound settings as props from parent component
  * 
  * @param {Object} props Component props
  * @param {Array} props.progression Chord progression to play
@@ -12,21 +12,25 @@ import MidiExportButton from './MidiExportButton';
  * @param {Function} props.onTempoChange Callback when tempo changes
  * @param {number} props.tempo Current tempo in BPM
  * @param {boolean} props.simplified Whether to use simplified UI
+ * @param {boolean} props.playFullChords Whether to play full chords or just root notes
+ * @param {string} props.currentPreset Current instrument preset
+ * @param {Function} props.onPresetChange Callback for preset changes
+ * @param {boolean} props.isDisabled Whether controls should be disabled
  * @returns {JSX.Element} Rendered component
  */
 const ProgressionPlayer = ({ 
     progression, 
     maintainPlayback = false, 
     onTempoChange, 
-    tempo: currentTempo,
-    simplified = false
+    tempo = 108,
+    simplified = false,
+    playFullChords = true,
+    currentPreset = 'strings',
+    onPresetChange,
+    isDisabled = false
 }) => {
     const [isPlaying, setIsPlaying] = useState(false);
-    const [playFullChords, setPlayFullChords] = useState(true);
-    const [tempo, setTempo] = useState('moderato');
-    const [currentPreset, setCurrentPreset] = useState('strings');
     const [activeChordIndex, setActiveChordIndex] = useState(-1);
-    const [showAdvancedControls, setShowAdvancedControls] = useState(false);
 
     // Effect to handle progression changes
     useEffect(() => {
@@ -35,27 +39,20 @@ const ProgressionPlayer = ({
         } else if (isPlaying && progression.length > 0) {
             audioEngine.stopProgressionPlayback();
             setTimeout(() => {
-                audioEngine.startProgressionPlayback(progression, playFullChords, getTempoBPM());
+                audioEngine.startProgressionPlayback(progression, playFullChords, tempo);
             }, 50);
         }
-    }, [progression, playFullChords]);
+    }, [progression, playFullChords, tempo]);
+
+    // Effect to handle instrument preset changes
+    useEffect(() => {
+        audioEngine.setPreset(currentPreset);
+    }, [currentPreset]);
 
     // Cleanup effect
     useEffect(() => {
         return () => handleStop();
     }, []);
-
-    // Convert tempo name to BPM value
-    const getTempoBPM = () => {
-        const tempoMarks = {
-            largo: 50,
-            adagio: 72,
-            moderato: 108,
-            allegro: 132,
-            presto: 168
-        };
-        return tempoMarks[tempo] || 108;
-    };
 
     const handlePlayPause = () => {
         if (isPlaying) {
@@ -66,15 +63,15 @@ const ProgressionPlayer = ({
     };
 
     const handlePlay = () => {
-        if (progression.length > 0) {
-            audioEngine.startProgressionPlayback(progression, playFullChords, getTempoBPM());
+        if (progression.length > 0 && !isDisabled) {
+            audioEngine.startProgressionPlayback(progression, playFullChords, tempo);
             setIsPlaying(true);
             setActiveChordIndex(0);
             
             // Set up a timer to update active chord based on durations
             const intervalTime = 100; // Check every 100ms
             let startTime = Date.now();
-            const tempoInBPS = getTempoBPM() / 60; // Beats per second
+            const tempoInBPS = tempo / 60; // Beats per second
             
             const timings = progression.map(chord => {
                 const duration = chord.duration || 2;
@@ -122,124 +119,37 @@ const ProgressionPlayer = ({
         setActiveChordIndex(-1);
     };
 
-    const toggleAdvancedControls = () => {
-        setShowAdvancedControls(!showAdvancedControls);
-    };
+    // We always render the component now, even if there's no progression
 
-    if (progression.length === 0) return null;
-
-    // Simplified UI focused on just play and export
-    if (simplified) {
-        return (
-            <div className="simplified-player">
-                {/* Updated controls layout */}
-                <div className="controls-container">
-                    {/* Left side: MIDI Export button */}
-                    <div className="left-controls">
-                        <MidiExportButton 
-                            progression={progression}
-                            tempo={getTempoBPM()}
-                        />
-                    </div>
-                    
-                    {/* Center: Play button */}
-                    <div className="center-controls">
-                        <button 
-                            onClick={handlePlayPause}
-                            className="play-button"
-                            aria-label={isPlaying ? "Pause" : "Play"}
-                        >
-                            {isPlaying ? '⏸' : '▶'}
-                        </button>
-                    </div>
-                    
-                    {/* Right side: Sound Settings */}
-                    <div className="right-controls">
-                        <button 
-                            onClick={toggleAdvancedControls} 
-                            className="advanced-toggle-button"
-                        >
-                            Sound Settings
-                        </button>
-                    </div>
+    return (
+        <div className="simplified-player">
+            <div className="controls-container">
+                {/* Left side: MIDI Export button */}
+                <div className="left-controls">
+                    <MidiExportButton 
+                        progression={progression}
+                        tempo={tempo}
+                        disabled={isDisabled}
+                    />
                 </div>
                 
-                {/* Advanced controls that can be toggled */}
-                {showAdvancedControls && (
-                    <div className="advanced-player-controls">
-                        <div className="tempo-control">
-                            <select 
-                                value={tempo}
-                                onChange={(e) => {
-                                    setTempo(e.target.value);
-                                    if (onTempoChange) {
-                                        onTempoChange(getTempoBPM());
-                                    }
-                                }}
-                                className="tempo-select"
-                            >
-                                <option value="largo">Very Slow</option>
-                                <option value="adagio">Slow</option>
-                                <option value="moderato">Medium</option>
-                                <option value="allegro">Fast</option>
-                                <option value="presto">Very Fast</option>
-                            </select>
-                        </div>
-                        
-                        <div className="chord-mode-toggle">
-                            <label className="toggle-container">
-                                <input
-                                    type="checkbox"
-                                    checked={playFullChords}
-                                    onChange={() => setPlayFullChords(!playFullChords)}
-                                    className="chord-toggle-input"
-                                />
-                                <span className="toggle-label">
-                                    {playFullChords ? 'Full Chords' : 'Root Notes'}
-                                </span>
-                            </label>
-                        </div>
-                        
-                        <div className="instrument-select">
-                            <select
-                                value={currentPreset}
-                                onChange={(e) => {
-                                    setCurrentPreset(e.target.value);
-                                    audioEngine.setPreset(e.target.value);
-                                }}
-                                className="synth-select"
-                            >
-                                <option value="strings">Strings</option>
-                                <option value="electric_piano">Electric Piano</option>
-                                <option value="organ">Organ</option>
-                                <option value="pad">Synth Pad</option>
-                                <option value="brass">Brass</option>
-                            </select>
-                        </div>
-                    </div>
-                )}
+                {/* Center: Play button */}
+                <div className="center-controls">
+                    <button 
+                        onClick={handlePlayPause}
+                        className={`play-button ${isDisabled ? 'disabled' : ''}`}
+                        aria-label={isPlaying ? "Pause" : "Play"}
+                        disabled={isDisabled}
+                    >
+                        {isPlaying ? '⏸' : '▶'}
+                    </button>
+                </div>
+                
+                {/* Right side: Empty to maintain layout */}
+                <div className="right-controls">
+                    {/* We removed sound settings button from here */}
+                </div>
             </div>
-        );
-    }
-
-    // Original full UI (kept for backwards compatibility)
-    return (
-        <div className="player-container">
-            {/* Original player UI code here */}
-            <div className="play-button-container">
-                <button 
-                    onClick={handlePlayPause}
-                    className="play-button"
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                >
-                    {isPlaying ? '⏸' : '▶'}
-                </button>
-            </div>
-            
-            <MidiExportButton 
-                progression={progression}
-                tempo={getTempoBPM()}
-            />
         </div>
     );
 };

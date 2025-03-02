@@ -28,6 +28,10 @@ const ChordGenerator = () => {
   const [patternType, setPatternType] = useState("");
   const [useStructuralPattern, setUseStructuralPattern] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
+  // Sound settings state (moved from ProgressionPlayer)
+  const [playFullChords, setPlayFullChords] = useState(true);
+  const [currentPreset, setCurrentPreset] = useState("strings");
 
   // Fetch available patterns from domain manager
   const rhythmPatterns = getAvailableRhythmPatterns();
@@ -69,6 +73,11 @@ const ChordGenerator = () => {
 
   const handleTempoChange = (newTempo) => setCurrentTempo(newTempo);
   const toggleOptions = () => setShowOptions(!showOptions);
+  
+  // Handler for instrument preset change
+  const handlePresetChange = (preset) => {
+    setCurrentPreset(preset);
+  };
 
   return (
     <div className="container">
@@ -92,18 +101,20 @@ const ChordGenerator = () => {
         
         {/* Updated player and controls layout */}
         <div className="controls-wrapper">
-          {/* Player controls */}
-          {progression.length > 0 && (
-            <div className="player-container">
-              <ProgressionPlayer
-                progression={progression}
-                maintainPlayback={true}
-                onTempoChange={handleTempoChange}
-                tempo={currentTempo}
-                simplified={true}
-              />
-            </div>
-          )}
+          {/* Player controls - always visible */}
+          <div className="player-container">
+            <ProgressionPlayer
+              progression={progression}
+              maintainPlayback={true}
+              onTempoChange={handleTempoChange}
+              tempo={currentTempo}
+              simplified={true}
+              playFullChords={playFullChords}
+              currentPreset={currentPreset}
+              onPresetChange={handlePresetChange}
+              isDisabled={progression.length === 0}
+            />
+          </div>
           
           {/* Generate button */}
           <div className="generate-button-container">
@@ -124,6 +135,70 @@ const ChordGenerator = () => {
         {showOptions && (
           <div className="options-panel">
             <div className="options-content">
+              {/* Sound Settings Section */}
+              <div className="option-section">
+                <h3>Sound Settings</h3>
+                <div className="control-group">
+                  <div className="instrument-control">
+                    <label htmlFor="instrument-select">Instrument:</label>
+                    <select
+                      id="instrument-select"
+                      value={currentPreset}
+                      onChange={(e) => setCurrentPreset(e.target.value)}
+                      className="synth-select"
+                    >
+                      <option value="strings">Strings</option>
+                      <option value="electric_piano">Electric Piano</option>
+                      <option value="organ">Organ</option>
+                      <option value="pad">Synth Pad</option>
+                      <option value="brass">Brass</option>
+                    </select>
+                  </div>
+                  <div className="tempo-control">
+                    <label htmlFor="tempo-select">Tempo:</label>
+                    <select
+                      id="tempo-select"
+                      value={currentTempo === 50 ? "largo" : 
+                             currentTempo === 72 ? "adagio" :
+                             currentTempo === 108 ? "moderato" :
+                             currentTempo === 132 ? "allegro" : "presto"}
+                      onChange={(e) => {
+                        const tempoMap = {
+                          "largo": 50,
+                          "adagio": 72,
+                          "moderato": 108,
+                          "allegro": 132,
+                          "presto": 168
+                        };
+                        const newTempo = tempoMap[e.target.value] || 108;
+                        setCurrentTempo(newTempo);
+                        handleTempoChange(newTempo);
+                      }}
+                      className="tempo-select"
+                    >
+                      <option value="largo">Very Slow</option>
+                      <option value="adagio">Slow</option>
+                      <option value="moderato">Medium</option>
+                      <option value="allegro">Fast</option>
+                      <option value="presto">Very Fast</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="chord-mode-toggle">
+                  <label className="toggle-container">
+                    <input
+                      type="checkbox"
+                      checked={playFullChords}
+                      onChange={() => setPlayFullChords(!playFullChords)}
+                      className="chord-toggle-input"
+                    />
+                    <span className="toggle-label">
+                      {playFullChords ? 'Full Chords' : 'Root Notes Only'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               <div className="control-group">
                 <div className="key-control">
                   <label htmlFor="key-select">Key:</label>
