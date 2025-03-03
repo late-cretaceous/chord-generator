@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { audioEngine } from '../lib/audio';
 import MidiExportButton from './MidiExportButton';
+import SynthControls from './SynthControls';
 
 /**
- * Simplified ProgressionPlayer Component
- * Receives sound settings as props from parent component
+ * Enhanced ProgressionPlayer Component
+ * Arpeggiation toggle removed from player (moved to sound settings)
  * 
  * @param {Object} props Component props
  * @param {Array} props.progression Chord progression to play
@@ -16,6 +17,7 @@ import MidiExportButton from './MidiExportButton';
  * @param {string} props.currentPreset Current instrument preset
  * @param {Function} props.onPresetChange Callback for preset changes
  * @param {boolean} props.isDisabled Whether controls should be disabled
+ * @param {boolean} props.isArpeggiated Whether to play arpeggiated or block chords
  * @returns {JSX.Element} Rendered component
  */
 const ProgressionPlayer = ({ 
@@ -27,7 +29,8 @@ const ProgressionPlayer = ({
     playFullChords = true,
     currentPreset = 'strings',
     onPresetChange,
-    isDisabled = false
+    isDisabled = false,
+    isArpeggiated = false
 }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [activeChordIndex, setActiveChordIndex] = useState(-1);
@@ -39,15 +42,26 @@ const ProgressionPlayer = ({
         } else if (isPlaying && progression.length > 0) {
             audioEngine.stopProgressionPlayback();
             setTimeout(() => {
-                audioEngine.startProgressionPlayback(progression, playFullChords, tempo);
+                audioEngine.startProgressionPlayback(
+                    progression, 
+                    playFullChords, 
+                    tempo, 
+                    isArpeggiated ? 'arpeggio' : 'chord'
+                );
             }, 50);
         }
-    }, [progression, playFullChords, tempo]);
+    }, [progression, playFullChords, tempo, isArpeggiated]);
 
     // Effect to handle instrument preset changes
     useEffect(() => {
         audioEngine.setPreset(currentPreset);
     }, [currentPreset]);
+
+    // Set playback mode when arpeggiation setting changes
+    useEffect(() => {
+        // This sets the mode even before playback starts
+        audioEngine.setPlaybackMode(isArpeggiated ? 'arpeggio' : 'chord');
+    }, [isArpeggiated]);
 
     // Cleanup effect
     useEffect(() => {
@@ -64,7 +78,16 @@ const ProgressionPlayer = ({
 
     const handlePlay = () => {
         if (progression.length > 0 && !isDisabled) {
-            audioEngine.startProgressionPlayback(progression, playFullChords, tempo);
+            // Make sure any previous playback is fully stopped
+            audioEngine.stopProgressionPlayback();
+            
+            // Start playback with current settings
+            audioEngine.startProgressionPlayback(
+                progression, 
+                playFullChords, 
+                tempo, 
+                isArpeggiated ? 'arpeggio' : 'chord'
+            );
             setIsPlaying(true);
             setActiveChordIndex(0);
             
@@ -119,8 +142,6 @@ const ProgressionPlayer = ({
         setActiveChordIndex(-1);
     };
 
-    // We always render the component now, even if there's no progression
-
     return (
         <div className="simplified-player">
             <div className="controls-container">
@@ -145,11 +166,21 @@ const ProgressionPlayer = ({
                     </button>
                 </div>
                 
-                {/* Right side: Empty to maintain layout */}
+                {/* Right side: empty now that arpeggio toggle is moved to sound settings */}
                 <div className="right-controls">
-                    {/* We removed sound settings button from here */}
+                    {/* Intentionally left empty for balanced layout */}
                 </div>
             </div>
+            
+            {/* Optional synth controls */}
+            {!simplified && (
+                <div className="synth-control-container">
+                    <SynthControls
+                        onPresetChange={onPresetChange}
+                        currentPreset={currentPreset}
+                    />
+                </div>
+            )}
         </div>
     );
 };

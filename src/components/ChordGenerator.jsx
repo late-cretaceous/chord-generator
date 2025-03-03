@@ -29,9 +29,10 @@ const ChordGenerator = () => {
   const [useStructuralPattern, setUseStructuralPattern] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   
-  // Sound settings state (moved from ProgressionPlayer)
+  // Sound settings state
   const [playFullChords, setPlayFullChords] = useState(true);
   const [currentPreset, setCurrentPreset] = useState("strings");
+  const [isArpeggiated, setIsArpeggiated] = useState(false);
 
   // Fetch available patterns from domain manager
   const rhythmPatterns = getAvailableRhythmPatterns();
@@ -79,6 +80,11 @@ const ChordGenerator = () => {
     setCurrentPreset(preset);
   };
 
+  // Handler for arpeggio toggle
+  const handleArpeggioToggle = (isArpeggiated) => {
+    setIsArpeggiated(isArpeggiated);
+  };
+
   return (
     <div className="container">
       <div className="card">
@@ -113,6 +119,8 @@ const ChordGenerator = () => {
               currentPreset={currentPreset}
               onPresetChange={handlePresetChange}
               isDisabled={progression.length === 0}
+              isArpeggiated={isArpeggiated}
+              onArpeggioToggle={handleArpeggioToggle}
             />
           </div>
           
@@ -184,18 +192,35 @@ const ChordGenerator = () => {
                     </select>
                   </div>
                 </div>
-                <div className="chord-mode-toggle">
-                  <label className="toggle-container">
-                    <input
-                      type="checkbox"
-                      checked={playFullChords}
-                      onChange={() => setPlayFullChords(!playFullChords)}
-                      className="chord-toggle-input"
-                    />
-                    <span className="toggle-label">
-                      {playFullChords ? 'Full Chords' : 'Root Notes Only'}
-                    </span>
-                  </label>
+                
+                <div className="chord-mode-toggles">
+                  <div className="chord-mode-toggle">
+                    <label className="toggle-container">
+                      <input
+                        type="checkbox"
+                        checked={playFullChords}
+                        onChange={() => setPlayFullChords(!playFullChords)}
+                        className="chord-toggle-input"
+                      />
+                      <span className="toggle-label">
+                        {playFullChords ? 'Full Chords' : 'Root Notes Only'}
+                      </span>
+                    </label>
+                  </div>
+                  
+                  <div className="chord-mode-toggle">
+                    <label className="toggle-container">
+                      <input
+                        type="checkbox"
+                        checked={isArpeggiated}
+                        onChange={() => setIsArpeggiated(!isArpeggiated)}
+                        className="chord-toggle-input"
+                      />
+                      <span className="toggle-label">
+                        {isArpeggiated ? 'Arpeggiated' : 'Block Chords'}
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
