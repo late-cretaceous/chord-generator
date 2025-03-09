@@ -1,184 +1,217 @@
 /* Enhanced Progression Display Styles */
   
 .enhanced-progression-container {
-    width: 100%;
-    margin: 16px 0;
-  }
-  
-  .theory-toggle {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 8px;
-  }
-  
-  .progression-display {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-  }
-  
-  .progression {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    width: 100%;
-    position: relative;
-  }
-  
-  .chord-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: transform 0.2s;
-    position: relative;
-  }
-  
-  .chord-wrapper:hover {
-    transform: translateY(-4px);
-  }
-  
-  .chord-wrapper.active-chord .chord {
-    background-color: #e2f0ff;
-    border-color: #4a90e2;
-  }
-  
-  .chord {
-    font-family: monospace;
-    font-size: 20px;
-    color: #333;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 12px;
-    min-width: 60px;
-    background-color: #f0f0f0;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    transition: all 0.2s;
-  }
-  
-  .chord:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .chord-inversion {
-    color: #4a90e2;
-    font-weight: 500;
-  }
-  
-  .duration-indicator {
-    font-size: 14px;
-    color: #666;
-    margin-top: 4px;
-  }
-  
-  .theory-container {
-    margin-top: 6px;
-    padding: 4px 6px;
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    font-size: 12px;
-    width: 100%;
-    min-width: 80px;
-    text-align: center;
-  }
-  
-  .chord-theory-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-  }
-  
-  .chord-symbol {
-    font-weight: bold;
-  }
-  
-  .chord-function {
-    color: #666;
-    font-size: 11px;
-  }
-  
-  .chord-borrowed {
-    color: #3b82f6;
-    font-size: 10px;
-    font-style: italic;
-  }
-  
-  .chord-cadence {
-    color: #8b5cf6;
-    font-size: 10px;
-  }
-  
-  .voice-leading-note {
-    color: #10b981;
-    font-size: 10px;
-  }
-  
-  /* Updated cadence styling */
-  .cadence-container {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    position: relative;
-    margin-top: 12px;
-  }
-  
-  .cadence-connector {
-    position: absolute;
-    top: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 120%;
-    z-index: 5;
-  }
-  
-  .cadence-line {
-    width: 100%;
-    height: 2px;
-    background-color: #8b5cf6; /* Purple */
-    margin-bottom: 2px;
-  }
-  
-  .cadence-label {
-    font-size: 10px;
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background-color: #8b5cf6;
-    text-align: center;
-    white-space: nowrap;
-  }
-  
-  .half-cadence-label {
-    font-size: 10px;
-    color: #8b5cf6;
-    padding: 2px 4px;
-    border-radius: 2px;
-    background-color: rgba(139, 92, 246, 0.1);
-    text-align: center;
-    margin-top: 4px;
-  }
-  
-  .theory-legend {
-    margin-top: 16px;
-    padding: 8px;
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    font-size: 12px;
-  }
-  
-  .legend-title {
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
-  
-  .legend-item {
-    margin: 2px 0;
-  }
+  width: 100%;
+  margin: 16px 0;
+}
+
+.theory-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.progression-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.progression {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+}
+
+.chord-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s;
+  position: relative;
+}
+
+.chord-wrapper:hover {
+  transform: translateY(-4px);
+}
+
+.chord-wrapper.active-chord .chord {
+  background-color: #e2f0ff;
+  border-color: #4a90e2;
+}
+
+.chord {
+  font-family: monospace;
+  font-size: 20px;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  min-width: 60px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  transition: all 0.2s;
+}
+
+.chord:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Chord content container for symbol and borrowed indicator */
+.chord-content {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* Style for the chord symbol */
+.chord-symbol {
+  font-weight: normal;
+}
+
+/* Style for borrowed chord indicator */
+.borrowed-indicator {
+  color: #FF5722;
+  font-weight: bold;
+  font-size: 18px;
+  margin-left: 2px;
+  margin-right: 4px;
+  position: relative;
+  top: -1px;
+  cursor: help;
+}
+
+/* Style for chord with borrowed quality */
+.chord-wrapper .chord-content {
+  position: relative;
+}
+
+.chord-with-inversion {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.chord-inversion {
+  color: #4a90e2;
+  font-weight: 500;
+  display: inline;
+  white-space: nowrap;
+}
+
+.duration-indicator {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.theory-container {
+  margin-top: 6px;
+  padding: 4px 6px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  font-size: 12px;
+  width: 100%;
+  min-width: 80px;
+  text-align: center;
+}
+
+.chord-theory-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.chord-function {
+  color: #666;
+  font-size: 11px;
+}
+
+.chord-borrowed {
+  color: #3b82f6;
+  font-size: 10px;
+  font-style: italic;
+}
+
+.chord-cadence {
+  color: #8b5cf6;
+  font-size: 10px;
+}
+
+.voice-leading-note {
+  color: #10b981;
+  font-size: 10px;
+}
+
+/* Updated cadence styling */
+.cadence-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  margin-top: 12px;
+}
+
+.cadence-connector {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120%;
+  z-index: 5;
+}
+
+.cadence-line {
+  width: 100%;
+  height: 2px;
+  background-color: #8b5cf6; /* Purple */
+  margin-bottom: 2px;
+}
+
+.cadence-label {
+  font-size: 10px;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background-color: #8b5cf6;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.half-cadence-label {
+  font-size: 10px;
+  color: #8b5cf6;
+  padding: 2px 4px;
+  border-radius: 2px;
+  background-color: rgba(139, 92, 246, 0.1);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.theory-legend {
+  margin-top: 16px;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.legend-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.legend-item {
+  margin: 2px 0;
+}

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import ChordTheoryDisplay from './ChordTheoryDisplay';
 import { NOTES } from '../lib/core';
-import './ChordGenerator.css';
+import './EnhancedProgressionStyles.css';
 
 /**
- * Displays a chord progression without detailed theory information
+ * Displays a chord progression with toggleable theory information
  * 
  * @param {Object} props Component props
  * @param {Array} props.progression Chord progression to display
@@ -18,22 +19,44 @@ const EnhancedProgressionDisplay = ({
   mode = 'ionian',
   activeIndex = -1
 }) => {
+  const [showTheory, setShowTheory] = useState(false);
+  
   if (!progression || progression.length === 0) {
     return <div className="empty-progression">No progression generated yet</div>;
   }
   
   return (
     <div className="enhanced-progression-container">
+      <div className="theory-toggle">
+        <button 
+          className="toggle-button" 
+          onClick={() => setShowTheory(!showTheory)}
+        >
+          {showTheory ? 'Hide Theory' : 'Show Theory'}
+        </button>
+      </div>
+      
       <div className="progression-display">
         <div className="progression">
           {progression.map((chord, index) => (
             <div 
               key={index} 
-              className={`chord ${index === activeIndex ? 'active-chord' : ''}`}
+              className={`chord-wrapper ${index === activeIndex ? 'active-chord' : ''}`}
             >
-              {formatChord(chord)}
-              {chord.duration !== 1 && chord.duration && (
-                <span className="duration-indicator">×{chord.duration.toFixed(1)}</span>
+              <div className="chord">
+                {formatChord(chord)}
+                {chord.duration !== 1 && chord.duration && (
+                  <span className="duration-indicator">×{chord.duration.toFixed(1)}</span>
+                )}
+              </div>
+              
+              {showTheory && (
+                <div className="theory-container">
+                  <ChordTheoryDisplay 
+                    chord={chord}
+                    hideCadenceInfo={false}
+                  />
+                </div>
               )}
             </div>
           ))}
@@ -56,10 +79,10 @@ function formatChord(chord) {
       qualitySuffix = 'm';
       break;
     case 'diminished':
-      qualitySuffix = 'dim';
+      qualitySuffix = '°'; // Using the degree symbol for diminished
       break;
     case 'augmented':
-      qualitySuffix = 'aug';
+      qualitySuffix = '+'; // Using plus sign for augmented
       break;
     case 'dominant7':
       qualitySuffix = '7';
@@ -70,19 +93,35 @@ function formatChord(chord) {
     case 'minor7':
       qualitySuffix = 'm7';
       break;
+    case 'halfDiminished7':
+      qualitySuffix = 'ø7';
+      break;
+    case 'minorMajor7':
+      qualitySuffix = 'mM7';
+      break;
+    case 'add9':
+      qualitySuffix = 'add9';
+      break;
+    case 'minor9':
+      qualitySuffix = 'm9';
+      break;
+    case 'major9':
+      qualitySuffix = 'maj9';
+      break;
+    case 'dominant9':
+      qualitySuffix = '9';
+      break;
     default:
       qualitySuffix = chord.quality === 'major' ? '' : chord.quality;
   }
   
-  const base = `${chord.root}${qualitySuffix}`;
-  
-  // Check for inversion
+  // Handle inversions (slash chords)
   if (chord.bass && chord.bass !== `${chord.root}2`) {
     const bassNote = chord.bass.replace(/[0-9]/, '');
-    return <>{base}<span className="chord-inversion">/{bassNote}</span></>;
+    return <span className="chord-with-inversion">{chord.root}{qualitySuffix}<span className="chord-inversion">/{bassNote}</span></span>;
   }
   
-  return base;
+  return <span>{chord.root}{qualitySuffix}</span>;
 }
 
 export default EnhancedProgressionDisplay;
