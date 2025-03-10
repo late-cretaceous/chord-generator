@@ -11,7 +11,9 @@ import {
 } from "../lib/structure/structural-progression.js";
 import ProgressionPlayer from "./ProgressionPlayer";
 import EnhancedProgressionDisplay from "./EnhancedProgressionDisplay";
+import ProgressionTester from "./ProgressionTester";
 import "./ChordGenerator.css";
+import "./ProgressionTester.css";
 
 const ChordGenerator = () => {
   const [progression, setProgression] = useState([]);
@@ -22,6 +24,7 @@ const ChordGenerator = () => {
   const [chordExtensionLevel, setChordExtensionLevel] = useState("none");
   const [currentTempo, setCurrentTempo] = useState(108);
   const [showOptions, setShowOptions] = useState(false);
+  const [showTester, setShowTester] = useState(false);
 
   // State for advanced options
   const [rhythmPattern, setRhythmPattern] = useState("uniform");
@@ -372,6 +375,23 @@ const ChordGenerator = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+        
+        {/* Test utility toggle */}
+        <div className="options-toggle tester-toggle">
+          <button 
+            onClick={() => setShowTester(!showTester)} 
+            className="toggle-button"
+          >
+            {showTester ? "Hide Test Utility" : "Show Music Theory Test Utility"}
+          </button>
+        </div>
+
+        {/* Test utility section */}
+        {showTester && (
+          <div className="tester-section">
+            <ProgressionTester />
           </div>
         )}
       </div>
